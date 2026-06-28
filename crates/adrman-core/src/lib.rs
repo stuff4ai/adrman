@@ -223,4 +223,32 @@ mod tests {
         let ids: Vec<&str> = entries.iter().map(|entry| entry.id.as_str()).collect();
         assert_eq!(ids, vec!["0002", "2", "10"]);
     }
+
+    #[test]
+    fn supports_all_agreed_filename_variants_with_text_ids() {
+        let temp_dir = unique_temp_dir("adrman_core_variants");
+        write_file(
+            &temp_dir.join("docs/adr/1_foo.md"),
+            "# Foo\n\n## Status\n\nAccepted\n",
+        );
+        write_file(
+            &temp_dir.join("docs/adr/01-bar.md"),
+            "# Bar\n\n## Status\n\nAccepted\n",
+        );
+        write_file(
+            &temp_dir.join("docs/adr/001 gap.md"),
+            "# Gap\n\n## Status\n\nAccepted\n",
+        );
+
+        let result = list_adrs(&temp_dir).expect("listing should succeed");
+        let ListAdrsResult::Entries(entries) = result else {
+            panic!("docs/adr exists, entries should be returned");
+        };
+
+        let files: Vec<&str> = entries.iter().map(|entry| entry.file.as_str()).collect();
+        assert_eq!(files, vec!["001 gap.md", "01-bar.md", "1_foo.md"]);
+
+        let ids: Vec<&str> = entries.iter().map(|entry| entry.id.as_str()).collect();
+        assert_eq!(ids, vec!["001", "01", "1"]);
+    }
 }

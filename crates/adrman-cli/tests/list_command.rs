@@ -104,3 +104,29 @@ fn missing_title_and_status_render_unknown() {
     assert!(stdout.contains("1    Unknown    Title Only    1-title-only.md"));
     assert!(stdout.contains("2    Accepted    Unknown    2-status-only.md"));
 }
+
+#[test]
+fn filename_variants_are_discovered_with_text_ids_and_sorted() {
+    let workspace = unique_temp_dir("adr_cli_variants");
+    write_file(
+        &workspace.join("docs/adr/1_foo.md"),
+        "# Foo\n\n## Status\n\nAccepted\n",
+    );
+    write_file(
+        &workspace.join("docs/adr/01-bar.md"),
+        "# Bar\n\n## Status\n\nAccepted\n",
+    );
+    write_file(
+        &workspace.join("docs/adr/001 gap.md"),
+        "# Gap\n\n## Status\n\nAccepted\n",
+    );
+
+    let output = run_cli(&workspace, "list");
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be UTF-8");
+    let lines: Vec<&str> = stdout.lines().collect();
+
+    assert_eq!(lines[3], "001    Accepted    Gap    001 gap.md");
+    assert_eq!(lines[4], "01    Accepted    Bar    01-bar.md");
+    assert_eq!(lines[5], "1    Accepted    Foo    1_foo.md");
+}
