@@ -27,6 +27,20 @@ Keep ADRs brief, plain, and reviewable. Use the template in `docs/adr/.adr-templ
 
 Do not renumber existing ADRs.
 
+## Spec-driven development
+
+Use OpenSpec in `openspec/` for spec-driven development of planned product changes.
+
+Use ADRs for durable project decisions.
+
+Use OpenSpec for proposals, requirements, designs, and implementation tasks before changing product behavior.
+
+Do not use OpenSpec for tiny documentation-only changes.
+
+Before implementing a feature, check active OpenSpec changes and relevant specs.
+
+Keep OpenSpec changes small, focused, and reviewable.
+
 ## Change workflow
 
 Use GitHub Flow:
