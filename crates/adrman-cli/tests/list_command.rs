@@ -65,12 +65,12 @@ fn rows_are_sorted_and_output_header_matches_contract() {
         "# Zeta\n\n## Status\n\nAccepted\n",
     );
     write_file(
-        &workspace.join("docs/adr/2-beta.md"),
-        "# Beta\n\n## Status\n\nAccepted\n",
+        &workspace.join("docs/adr/0002-alpha.md"),
+        "# Alpha\n\n## Status\n\nAccepted\n",
     );
     write_file(
-        &workspace.join("docs/adr/2 alpha.md"),
-        "# Alpha\n\n## Status\n\nAccepted\n",
+        &workspace.join("docs/adr/2-beta.md"),
+        "# Beta\n\n## Status\n\nAccepted\n",
     );
 
     let output = run_cli(&workspace, "list");
@@ -81,7 +81,7 @@ fn rows_are_sorted_and_output_header_matches_contract() {
     assert_eq!(lines[0], "ADRs (docs/adr/)");
     assert_eq!(lines[1], "");
     assert_eq!(lines[2], "ID    Status    Title    File");
-    assert_eq!(lines[3], "2    Accepted    Alpha    2 alpha.md");
+    assert_eq!(lines[3], "0002    Accepted    Alpha    0002-alpha.md");
     assert_eq!(lines[4], "2    Accepted    Beta    2-beta.md");
     assert_eq!(lines[5], "10    Accepted    Zeta    10-zeta.md");
 }

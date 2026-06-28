@@ -9,10 +9,11 @@ const UNKNOWN: &str = "Unknown";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdrEntry {
-    pub id: u64,
+    pub id: String,
     pub status: String,
     pub title: String,
     pub file: String,
+    sort_id: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,7 +44,7 @@ pub fn list_adrs(repo_root: &Path) -> io::Result<ListAdrsResult> {
             continue;
         }
 
-        let Some(id) = extract_id(&file_name) else {
+        let Some((id, sort_id)) = extract_id(&file_name) else {
             continue;
         };
 
@@ -53,12 +54,13 @@ pub fn list_adrs(repo_root: &Path) -> io::Result<ListAdrsResult> {
             status: extract_status(&content).unwrap_or_else(|| UNKNOWN.to_string()),
             title: extract_title(&content).unwrap_or_else(|| UNKNOWN.to_string()),
             file: file_name,
+            sort_id,
         });
     }
 
     entries.sort_by(|left, right| {
-        left.id
-            .cmp(&right.id)
+        left.sort_id
+            .cmp(&right.sort_id)
             .then_with(|| left.file.cmp(&right.file))
     });
     Ok(ListAdrsResult::Entries(entries))
@@ -82,7 +84,7 @@ fn is_adr_filename(file_name: &str) -> bool {
         .is_match(file_name)
 }
 
-fn extract_id(file_name: &str) -> Option<u64> {
+fn extract_id(file_name: &str) -> Option<(String, u64)> {
     let digits_end = file_name
         .bytes()
         .take_while(|byte| byte.is_ascii_digit())
@@ -91,7 +93,9 @@ fn extract_id(file_name: &str) -> Option<u64> {
         return None;
     }
 
-    file_name[..digits_end].parse().ok()
+    let id_text = file_name[..digits_end].to_string();
+    let sort_id = id_text.parse().ok()?;
+    Some((id_text, sort_id))
 }
 
 fn extract_title(content: &str) -> Option<String> {
@@ -160,7 +164,7 @@ mod tests {
             panic!("docs/adr exists, entries should be returned");
         };
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].id, 1);
+        assert_eq!(entries[0].id, "0001");
         assert_eq!(entries[0].status, "Accepted");
         assert_eq!(entries[0].title, "First ADR");
         assert_eq!(entries[0].file, "0001-first.md");
@@ -201,7 +205,7 @@ mod tests {
             "# Beta\n\n## Status\n\nAccepted\n",
         );
         write_file(
-            &temp_dir.join("docs/adr/2 alpha.md"),
+            &temp_dir.join("docs/adr/0002-alpha.md"),
             "# Alpha\n\n## Status\n\nAccepted\n",
         );
         write_file(
@@ -215,6 +219,8 @@ mod tests {
         };
 
         let files: Vec<&str> = entries.iter().map(|entry| entry.file.as_str()).collect();
-        assert_eq!(files, vec!["2 alpha.md", "2-beta.md", "10-zeta.md"]);
+        assert_eq!(files, vec!["0002-alpha.md", "2-beta.md", "10-zeta.md"]);
+        let ids: Vec<&str> = entries.iter().map(|entry| entry.id.as_str()).collect();
+        assert_eq!(ids, vec!["0002", "2", "10"]);
     }
 }
