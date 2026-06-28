@@ -1,6 +1,7 @@
 # AGENTS.md
 
-**adrman** is a Git-first, agent-friendly CLI tool for managing [Architectural (Any) Decision Records](https://adr.github.io/).
+**adrman** is a Git-first, agent-friendly CLI tool
+for managing [Architectural (Any) Decision Records](https://adr.github.io/).
 
 ## Project rules
 
@@ -36,3 +37,14 @@ Use GitHub Flow:
 4. Wait for human review before merging.
 
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages.
+
+## Rust commands
+
+Use [Cargo](https://doc.rust-lang.org/cargo/) commands for Rust development.
+
+- Check workspace: `cargo check --workspace`
+- Format code: `cargo fmt`
+- Check formatting: `cargo fmt --check`
+- Run lints: `cargo clippy --workspace --all-targets`
+- Run tests: `cargo test --workspace`
+- Run CLI: `cargo run -p adrman-cli`
