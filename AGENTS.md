@@ -12,6 +12,20 @@
 - Do not publish releases.
 - Update documentation when behavior or workflow changes.
 
+## Decision records
+
+Use ADRs in `docs/adr/` to understand and record important project decisions.
+
+Before proposing a change, check existing ADRs for relevant decisions.
+
+When a change introduces or changes an important decision, add a new ADR.
+
+Accepted ADRs are immutable history. To replace one, create a new ADR that supersedes it.
+
+Keep ADRs brief, plain, and reviewable. Use the template in `docs/adr/.adr-template.md`.
+
+Do not renumber existing ADRs.
+
 ## Change workflow
 
 Use GitHub Flow:
