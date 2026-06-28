@@ -62,3 +62,9 @@ Use [Cargo](https://doc.rust-lang.org/cargo/) commands for Rust development.
 - Run lints: `cargo clippy --workspace --all-targets`
 - Run tests: `cargo test --workspace`
 - Run CLI: `cargo run -p adrman-cli`
+
+## Cursor Cloud specific instructions
+
+This is a self-contained Rust Cargo workspace (`adrman-cli` binary + `adrman-core` library). There are no servers, databases, network calls, or other background services to start — verification is entirely via the Cargo commands listed under "Rust commands" above.
+
+The pinned toolchain lives in `rust-toolchain.toml` (stable, with `clippy`/`rustfmt`/`rust-src`); `rustup` auto-installs it on the first `cargo` invocation, so the initial command in a fresh VM may pause briefly while the toolchain syncs.
