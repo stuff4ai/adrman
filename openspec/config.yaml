@@ -1,0 +1,24 @@
+schema: spec-driven
+
+context: |
+  Product: adrman
+  CLI: adr
+  Language: Rust
+  Workspace crates: adrman-cli, adrman-core
+  Domain: Architectural (Any) Decision Records
+  Workflow: GitHub Flow, Conventional Commits, ADRs in docs/adr/
+  Goal: Git-first, agent-friendly CLI for humans, CI, and AI agents.
+
+rules:
+  proposal:
+    - Keep proposals brief and focused.
+    - Explain what changes and why.
+    - Include non-goals when scope could grow.
+  design:
+    - Prefer plain files and Git-friendly workflows.
+    - Keep runtime behavior explicit and predictable.
+    - Keep dependencies minimal.
+  tasks:
+    - Keep tasks small and reviewable.
+    - Include documentation updates when behavior or workflow changes.
+    - Include tests for user-visible behavior.
