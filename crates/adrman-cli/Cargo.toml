@@ -3,4 +3,9 @@ name = "adrman-cli"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "adr"
+path = "src/main.rs"
+
 [dependencies]
+adrman-core = { path = "../adrman-core" }

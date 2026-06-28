@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run adrman-cli" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+  <configuration default="false" name="Run adr" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
     <option name="buildProfileId" value="dev" />
-    <option name="command" value="run --package adrman-cli --bin adrman-cli" />
+    <option name="command" value="run --package adrman-cli --bin adr -- list" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs />
     <option name="emulateTerminal" value="true" />

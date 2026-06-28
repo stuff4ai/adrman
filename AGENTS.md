@@ -61,7 +61,7 @@ Use [Cargo](https://doc.rust-lang.org/cargo/) commands for Rust development.
 - Check formatting: `cargo fmt --check`
 - Run lints: `cargo clippy --workspace --all-targets`
 - Run tests: `cargo test --workspace`
-- Run CLI: `cargo run -p adrman-cli`
+- Run CLI: `cargo run -p adrman-cli --bin adr -- list`
 
 ## Cursor Cloud specific instructions
 
