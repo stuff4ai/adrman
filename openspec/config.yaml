@@ -1,20 +1,24 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Product: adrman
+  CLI: adr
+  Language: Rust
+  Workspace crates: adrman-cli, adrman-core
+  Domain: Architectural (Any) Decision Records
+  Workflow: GitHub Flow, Conventional Commits, ADRs in docs/adr/
+  Goal: Git-first, agent-friendly CLI for humans, CI, and AI agents.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Keep proposals brief and focused.
+    - Explain what changes and why.
+    - Include non-goals when scope could grow.
+  design:
+    - Prefer plain files and Git-friendly workflows.
+    - Keep runtime behavior explicit and predictable.
+    - Keep dependencies minimal.
+  tasks:
+    - Keep tasks small and reviewable.
+    - Include documentation updates when behavior or workflow changes.
+    - Include tests for user-visible behavior.
