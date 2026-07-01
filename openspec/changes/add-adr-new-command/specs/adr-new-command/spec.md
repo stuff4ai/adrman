@@ -13,13 +13,17 @@ The CLI SHALL provide an `adr new` command that creates a new ADR file from a re
 - **THEN** the CLI reports that the title is required
 - **AND** exits with a non-zero status code
 
-### Requirement: ADR directory creation
-The ADR creation workflow SHALL write files to `docs/adr/` and MUST create `docs/adr/` when it does not exist.
+### Requirement: ADR workspace prerequisite
+The ADR creation workflow SHALL write files to `docs/adr/` only when `docs/adr/` and `docs/adr/.adr-template.md` already exist.
+
+The command MUST NOT create `docs/adr/` when it is missing and MUST NOT create or bootstrap `docs/adr/.adr-template.md`.
 
 #### Scenario: ADR directory is missing
 - **WHEN** a user runs `adr new "Use SQLite for local cache"` and `docs/adr/` does not exist
-- **THEN** the CLI creates `docs/adr/`
-- **AND** writes the new ADR file inside that directory
+- **THEN** the CLI reports that `docs/adr/.adr-template.md` is missing
+- **AND** exits with a non-zero status code
+- **AND** does not create `docs/adr/`
+- **AND** does not create a new ADR file
 
 ### Requirement: ADR ID discovery scope
 The command SHALL determine the next ADR ID only from regular files in `docs/adr/` whose base filename matches `^[0-9]+[-_ ].*\.md$`.
@@ -88,10 +92,10 @@ The command SHALL name new ADR files as `<id>-<slug>.md`, where `<id>` is the as
 ### Requirement: ADR template requirement
 The command MUST read `docs/adr/.adr-template.md` before creating a new ADR file.
 
-If the template file is missing, the command MUST exit with a non-zero status code, report that the template is missing, and MUST NOT create an ADR file or modify `docs/adr/`.
+If the template file is missing, the command MUST exit with a non-zero status code, report that `docs/adr/.adr-template.md` is missing, and MUST NOT create an ADR file, create `docs/adr/`, or bootstrap template content.
 
 #### Scenario: Template file is missing
-- **WHEN** a user runs `adr new "Use SQLite for local cache"` and `docs/adr/.adr-template.md` does not exist
+- **WHEN** a user runs `adr new "Use SQLite for local cache"` and `docs/adr/` exists but `docs/adr/.adr-template.md` does not exist
 - **THEN** the CLI reports that `docs/adr/.adr-template.md` is missing
 - **AND** exits with a non-zero status code
 - **AND** does not create a new ADR file

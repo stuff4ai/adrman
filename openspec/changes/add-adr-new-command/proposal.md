@@ -6,7 +6,7 @@ adrman can list existing ADRs but cannot create new decision records from the CL
 
 - Add a new CLI command: `adr new "<title>"`.
 - Require a title argument; reject invocations without one.
-- Create new ADR files in `docs/adr/`, creating the directory when missing.
+- Create new ADR files in `docs/adr/` only when that directory and `docs/adr/.adr-template.md` already exist.
 - Discover the next ADR ID from existing ADR filenames only:
   - Include only files in `docs/adr/` matching `^[0-9]+[-_ ].*\.md$`.
   - Ignore templates and other markdown files such as `.adr-template.md` and `notes.md`.
@@ -18,7 +18,8 @@ adrman can list existing ADRs but cannot create new decision records from the CL
   - Trim leading and trailing hyphens.
   - Fail when the title cannot produce a slug.
   - Use `<id>-<slug>.md` (for example `0005-use-sqlite-for-local-cache.md`).
-- Require `docs/adr/.adr-template.md`; fail without creating a file when it is missing.
+- Require an existing ADR workspace: `docs/adr/` and `docs/adr/.adr-template.md` must already be present.
+- Fail clearly when the template is missing; do not create `docs/adr/` or bootstrap a template.
 - Populate new files from the template by replacing `# Title` with the provided title and setting initial status to `Proposed`.
 - Refuse to overwrite an existing target file.
 - Print the created file path on success.
@@ -30,6 +31,7 @@ adrman can list existing ADRs but cannot create new decision records from the CL
   - No index generation.
   - No lifecycle or status update commands.
   - No relationship handling.
+  - No ADR directory or template bootstrapping.
 
 ## Capabilities
 
