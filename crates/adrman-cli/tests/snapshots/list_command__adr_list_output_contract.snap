@@ -1,0 +1,10 @@
+---
+source: crates/adrman-cli/tests/list_command.rs
+expression: output.stdout_str()
+---
+ADRs (docs/adr/)
+
+ID    Status    Title    File
+0001    Accepted    First    0001-first.md
+0002    Proposed    Second    0002-second.md
+0003    Superseded    Third    0003-third.md

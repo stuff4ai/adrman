@@ -20,3 +20,9 @@
 
 - [x] 4.1 Update README and any user-facing command docs to use binary name `adr`.
 - [x] 4.2 Document `adr list`/`adr ls` behavior, ADR filename expectations, and missing-directory warning behavior.
+
+## 5. CLI integration test foundation
+
+- [x] 5.1 Add reusable CLI integration test helpers under `crates/adrman-cli/tests/support/` for isolated workspace setup, file writing, ADR fixture writing, and compiled `adr` execution.
+- [x] 5.2 Refactor `adr list` integration tests to use shared helpers and add snapshot coverage for stable normal output.
+- [x] 5.3 Document local CLI-focused test and snapshot update commands for humans and agents.

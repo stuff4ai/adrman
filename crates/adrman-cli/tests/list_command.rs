@@ -1,81 +1,42 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+mod support;
 
-fn unique_temp_dir(prefix: &str) -> PathBuf {
-    let mut path = std::env::temp_dir();
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system time should be valid")
-        .as_nanos();
-    path.push(format!("{prefix}_{}_{}", std::process::id(), nanos));
-    fs::create_dir_all(&path).expect("temp directory should be created");
-    path
-}
-
-fn write_file(path: &Path, content: &str) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).expect("parent should be created");
-    }
-    fs::write(path, content).expect("file should be written");
-}
-
-fn run_cli(workspace: &Path, command: &str) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_adr"))
-        .arg(command)
-        .current_dir(workspace)
-        .output()
-        .expect("CLI should execute")
-}
+use predicates::prelude::predicate;
+use support::CliTestWorkspace;
 
 #[test]
 fn list_and_ls_commands_are_identical() {
-    let workspace = unique_temp_dir("adr_cli_alias");
-    write_file(
-        &workspace.join("docs/adr/0001-first.md"),
-        "# First\n\n## Status\n\nAccepted\n",
-    );
+    let workspace = CliTestWorkspace::new();
+    workspace.write_adr("0001-first.md", "# First\n\n## Status\n\nAccepted\n");
 
-    let list_output = run_cli(&workspace, "list");
-    let ls_output = run_cli(&workspace, "ls");
+    let list_output = workspace.run(&["list"]);
+    let ls_output = workspace.run(&["ls"]);
 
-    assert!(list_output.status.success());
-    assert!(ls_output.status.success());
-    assert_eq!(list_output.stdout, ls_output.stdout);
-    assert_eq!(list_output.stderr, ls_output.stderr);
+    list_output.assert_success();
+    ls_output.assert_success();
+    assert_eq!(list_output.stdout_str(), ls_output.stdout_str());
+    assert_eq!(list_output.stderr_str(), ls_output.stderr_str());
 }
 
 #[test]
 fn missing_adr_directory_warns_and_exits_successfully() {
-    let workspace = unique_temp_dir("adr_cli_missing_dir");
+    let workspace = CliTestWorkspace::new();
 
-    let output = run_cli(&workspace, "list");
-    assert!(output.status.success());
-    let stderr = String::from_utf8(output.stderr).expect("stderr should be UTF-8");
-    assert!(stderr.contains("Warning: ADR directory"));
-    assert!(stderr.contains("docs/adr"));
+    let output = workspace.run(&["list"]);
+    output.assert_success();
+    output.assert_stderr(predicate::str::contains("Warning: ADR directory"));
+    output.assert_stderr(predicate::str::contains("docs/adr"));
 }
 
 #[test]
 fn rows_are_sorted_and_output_header_matches_contract() {
-    let workspace = unique_temp_dir("adr_cli_output_contract");
-    write_file(
-        &workspace.join("docs/adr/10-zeta.md"),
-        "# Zeta\n\n## Status\n\nAccepted\n",
-    );
-    write_file(
-        &workspace.join("docs/adr/0002-alpha.md"),
-        "# Alpha\n\n## Status\n\nAccepted\n",
-    );
-    write_file(
-        &workspace.join("docs/adr/2-beta.md"),
-        "# Beta\n\n## Status\n\nAccepted\n",
-    );
+    let workspace = CliTestWorkspace::new();
+    workspace.write_adr("10-zeta.md", "# Zeta\n\n## Status\n\nAccepted\n");
+    workspace.write_adr("0002-alpha.md", "# Alpha\n\n## Status\n\nAccepted\n");
+    workspace.write_adr("2-beta.md", "# Beta\n\n## Status\n\nAccepted\n");
 
-    let output = run_cli(&workspace, "list");
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).expect("stdout should be UTF-8");
+    let output = workspace.run(&["list"]);
+    output.assert_success();
+    let stdout = output.stdout_str();
     let lines: Vec<&str> = stdout.lines().collect();
 
     assert_eq!(lines[0], "ADRs (docs/adr/)");
@@ -88,45 +49,61 @@ fn rows_are_sorted_and_output_header_matches_contract() {
 
 #[test]
 fn missing_title_and_status_render_unknown() {
-    let workspace = unique_temp_dir("adr_cli_unknown");
-    write_file(
-        &workspace.join("docs/adr/1-title-only.md"),
+    let workspace = CliTestWorkspace::new();
+    workspace.write_adr(
+        "1-title-only.md",
         "# Title Only\n\n## Context\n\nNo status section.\n",
     );
-    write_file(
-        &workspace.join("docs/adr/2-status-only.md"),
+    workspace.write_adr(
+        "2-status-only.md",
         "## Status\n\nAccepted\n\n## Context\n\nNo title.\n",
     );
 
-    let output = run_cli(&workspace, "list");
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).expect("stdout should be UTF-8");
-    assert!(stdout.contains("1    Unknown    Title Only    1-title-only.md"));
-    assert!(stdout.contains("2    Accepted    Unknown    2-status-only.md"));
+    let output = workspace.run(&["list"]);
+    output.assert_success();
+    output.assert_stdout(predicate::str::contains(
+        "1    Unknown    Title Only    1-title-only.md",
+    ));
+    output.assert_stdout(predicate::str::contains(
+        "2    Accepted    Unknown    2-status-only.md",
+    ));
 }
 
 #[test]
 fn filename_variants_are_discovered_with_text_ids_and_sorted() {
-    let workspace = unique_temp_dir("adr_cli_variants");
-    write_file(
-        &workspace.join("docs/adr/1_foo.md"),
-        "# Foo\n\n## Status\n\nAccepted\n",
-    );
-    write_file(
-        &workspace.join("docs/adr/01-bar.md"),
-        "# Bar\n\n## Status\n\nAccepted\n",
-    );
-    write_file(
-        &workspace.join("docs/adr/001 gap.md"),
-        "# Gap\n\n## Status\n\nAccepted\n",
-    );
+    let workspace = CliTestWorkspace::new();
+    workspace.write_adr("1_foo.md", "# Foo\n\n## Status\n\nAccepted\n");
+    workspace.write_adr("01-bar.md", "# Bar\n\n## Status\n\nAccepted\n");
+    workspace.write_adr("001 gap.md", "# Gap\n\n## Status\n\nAccepted\n");
 
-    let output = run_cli(&workspace, "list");
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).expect("stdout should be UTF-8");
+    let output = workspace.run(&["list"]);
+    output.assert_success();
+    let stdout = output.stdout_str();
     let lines: Vec<&str> = stdout.lines().collect();
 
     assert_eq!(lines[3], "001    Accepted    Gap    001 gap.md");
     assert_eq!(lines[4], "01    Accepted    Bar    01-bar.md");
     assert_eq!(lines[5], "1    Accepted    Foo    1_foo.md");
+}
+
+#[test]
+fn snapshots_normal_list_output_contract() {
+    let workspace = CliTestWorkspace::new();
+    workspace.write_adr(
+        "0001-first.md",
+        "# First\n\n## Status\n\nAccepted\n\n## Context\n\nFirst context.\n",
+    );
+    workspace.write_adr(
+        "0002-second.md",
+        "# Second\n\n## Status\n\nProposed\n\n## Context\n\nSecond context.\n",
+    );
+    workspace.write_adr(
+        "0003-third.md",
+        "# Third\n\n## Status\n\nSuperseded\n\n## Context\n\nThird context.\n",
+    );
+
+    let output = workspace.run(&["list"]);
+    output.assert_success();
+
+    insta::assert_snapshot!("adr_list_output_contract", output.stdout_str());
 }

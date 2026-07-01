@@ -62,6 +62,8 @@ Use [Cargo](https://doc.rust-lang.org/cargo/) commands for Rust development.
 - Run lints: `cargo clippy --workspace --all-targets`
 - Run tests: `cargo test --workspace`
 - Run CLI: `cargo run -p adrman-cli --bin adr -- list`
+- Run focused CLI integration tests: `cargo test -p adrman-cli --test list_command`
+- Update/review CLI snapshots: `INSTA_UPDATE=always cargo test -p adrman-cli --test list_command`
 
 ## Cursor Cloud specific instructions
 
