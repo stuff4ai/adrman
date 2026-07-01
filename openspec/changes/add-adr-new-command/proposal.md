@@ -7,9 +7,19 @@ adrman can list existing ADRs but cannot create new decision records from the CL
 - Add a new CLI command: `adr new "<title>"`.
 - Require a title argument; reject invocations without one.
 - Create new ADR files in `docs/adr/`, creating the directory when missing.
-- Assign the next four-digit zero-padded numeric ID after existing ADR files (for example `0005`).
-- Build filenames from the ID and a slug generated from the title (for example `0005-use-sqlite-for-local-cache.md`).
-- Populate new files from `docs/adr/.adr-template.md`, replacing `# Title` with the provided title and setting initial status to `Proposed`.
+- Discover the next ADR ID from existing ADR filenames only:
+  - Include only files in `docs/adr/` matching `^[0-9]+[-_ ].*\.md$`.
+  - Ignore templates and other markdown files such as `.adr-template.md` and `notes.md`.
+  - Use the highest numeric filename prefix plus one.
+  - Format new IDs with four-digit zero padding (for example `0005`).
+- Build filenames from the assigned ID and a slug generated from the title:
+  - Lowercase the title.
+  - Replace non-alphanumeric runs with single hyphens.
+  - Trim leading and trailing hyphens.
+  - Fail when the title cannot produce a slug.
+  - Use `<id>-<slug>.md` (for example `0005-use-sqlite-for-local-cache.md`).
+- Require `docs/adr/.adr-template.md`; fail without creating a file when it is missing.
+- Populate new files from the template by replacing `# Title` with the provided title and setting initial status to `Proposed`.
 - Refuse to overwrite an existing target file.
 - Print the created file path on success.
 - Non-goals for this change:
@@ -34,6 +44,6 @@ adrman can list existing ADRs but cannot create new decision records from the CL
 - Affected code:
   - `adrman-cli` command parsing and dispatch for the new `new` subcommand.
   - ADR ID discovery, slug generation, template rendering, and file creation logic (likely in `adrman-core`).
-  - CLI error handling for missing title, existing target files, and filesystem failures.
+  - CLI error handling for missing title, missing template, empty slug, existing target files, and filesystem failures.
 - Documentation:
   - README and user-facing command docs for `adr new` behavior and examples.
