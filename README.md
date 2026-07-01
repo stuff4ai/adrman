@@ -6,6 +6,8 @@ for managing [Architectural (Any) Decision Records](https://adr.github.io/).
 adrman helps humans and AI agents work with decision records
 as plain files in a Git repository.
 
+The CLI binary name is `adr`.
+
 ## Goals
 
 - Keep decision records easy to create, review, and evolve through Git.
@@ -50,5 +52,28 @@ cargo test --workspace
 ### Run CLI
 
 ```bash
-cargo run -p adrman-cli
+cargo run -p adrman-cli --bin adr -- list
+```
+
+## Commands
+
+### `adr list` / `adr ls`
+
+- Reads ADR files from `docs/adr/` only.
+- Includes only files matching `^[0-9]+[-_ ].*\.md$`.
+- Extracts:
+  - `ID` from filename numeric prefix
+  - `Status` from `## Status`
+  - `Title` from first `# ` heading
+  - `File` as base filename
+- Uses `Unknown` when title or status is missing.
+- If `docs/adr/` is missing, prints a warning and exits successfully.
+- Sorts rows by numeric `ID`, then by `File`.
+
+Output format:
+
+```text
+ADRs (docs/adr/)
+
+ID    Status    Title    File
 ```

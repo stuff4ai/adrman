@@ -3,4 +3,15 @@ name = "adrman-cli"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "adr"
+path = "src/main.rs"
+
 [dependencies]
+adrman-core = { path = "../adrman-core" }
+
+[dev-dependencies]
+assert_cmd = "2.2.2"
+assert_fs = "1.1.4"
+insta = "1.48.0"
+predicates = "3.1.4"
