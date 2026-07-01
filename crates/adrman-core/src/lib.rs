@@ -1,6 +1,6 @@
 use regex::Regex;
-use std::fs;
-use std::io;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -58,14 +58,27 @@ pub fn create_new_adr(repo_root: &Path, title: &str) -> Result<PathBuf, NewAdrEr
         .join(ADR_DIR.trim_end_matches('/'))
         .join(&file_name);
 
-    if target_path.exists() {
-        return Err(NewAdrError::TargetExists(target_path));
-    }
-
     let content = populate_template(&template, title);
-    fs::write(&target_path, content).map_err(NewAdrError::Io)?;
+    write_new_adr_file(&target_path, &content)?;
 
     Ok(target_path)
+}
+
+fn write_new_adr_file(target_path: &Path, content: &str) -> Result<(), NewAdrError> {
+    match OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(target_path)
+    {
+        Ok(mut file) => file
+            .write_all(content.as_bytes())
+            .map_err(NewAdrError::Io)
+            .map(|_| ()),
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+            Err(NewAdrError::TargetExists(target_path.to_path_buf()))
+        }
+        Err(error) => Err(NewAdrError::Io(error)),
+    }
 }
 
 fn read_template(repo_root: &Path) -> Result<String, NewAdrError> {
@@ -499,15 +512,16 @@ mod tests {
     }
 
     #[test]
-    fn create_new_adr_fails_when_target_exists() {
+    fn write_new_adr_file_fails_when_target_already_exists() {
         let temp_dir = unique_temp_dir("adrman_core_target_exists");
-        write_file(&temp_dir.join("docs/adr/.adr-template.md"), TEMPLATE);
-
         let target_path = temp_dir.join("docs/adr/0001-use-sqlite-for-local-cache.md");
-        fs::create_dir_all(&target_path).expect("target path should be created");
+        write_file(&target_path, "existing content");
 
-        let error = create_new_adr(&temp_dir, "Use SQLite for local cache")
+        let error = write_new_adr_file(&target_path, "new content")
             .expect_err("existing target should fail");
         assert!(matches!(error, NewAdrError::TargetExists(_)));
+
+        let content = fs::read_to_string(&target_path).expect("existing file should remain");
+        assert_eq!(content, "existing content");
     }
 }

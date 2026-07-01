@@ -10,7 +10,7 @@ fn main() -> ExitCode {
 
     match command.as_deref() {
         Some("list" | "ls") if args.next().is_none() => run_list(),
-        Some("new") => run_new(args.next()),
+        Some("new") => run_new(&mut args),
         _ => {
             eprintln!(
                 "Usage: adr <COMMAND>\n\nCommands:\n  list, ls    List ADRs from docs/adr/\n  new         Create a new ADR from a title"
@@ -20,7 +20,13 @@ fn main() -> ExitCode {
     }
 }
 
-fn run_new(title: Option<String>) -> ExitCode {
+fn run_new(args: &mut impl Iterator<Item = String>) -> ExitCode {
+    let title = args.next();
+    if args.next().is_some() {
+        eprintln!("Error: unexpected extra arguments");
+        return ExitCode::from(1);
+    }
+
     let Some(title) = title.filter(|title| !title.is_empty()) else {
         eprintln!("Error: title is required");
         return ExitCode::from(1);

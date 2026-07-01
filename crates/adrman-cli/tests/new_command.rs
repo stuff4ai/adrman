@@ -84,19 +84,16 @@ fn new_command_fails_when_slug_is_empty() {
 }
 
 #[test]
-fn new_command_fails_when_target_file_exists() {
+fn new_command_rejects_extra_arguments() {
     let workspace = CliTestWorkspace::new();
     workspace.write_default_adr_template();
-    fs::create_dir_all(
-        workspace
-            .path()
-            .join("docs/adr/0001-use-sqlite-for-local-cache.md"),
-    )
-    .expect("target path should be created");
 
-    let output = workspace.run(&["new", "Use SQLite for local cache"]);
+    let output = workspace.run(&["new", "Use", "SQLite"]);
     assert_eq!(output.status_code(), Some(1));
-    output.assert_stderr(predicate::str::contains("target file already exists"));
+    output.assert_stderr(predicate::str::contains("unexpected extra arguments"));
+
+    let created = workspace.path().join("docs/adr/0001-use.md");
+    assert!(!created.exists());
 }
 
 #[test]
