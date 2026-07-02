@@ -6,10 +6,19 @@ use std::sync::OnceLock;
 
 const ADR_DIR: &str = "docs/adr/";
 const TEMPLATE_REL_PATH: &str = "docs/adr/.adr-template.md";
+const TEMPLATE_FILE_NAME: &str = ".adr-template.md";
 const TITLE_PLACEHOLDER_LINE: &str = "# Title";
 const STATUS_HEADING: &str = "## Status";
 const INITIAL_STATUS: &str = "Proposed";
 const UNKNOWN: &str = "Unknown";
+const REQUIRED_SECTIONS: &[&str] = &["Status", "Context", "Decision", "Consequences"];
+const SUPPORTED_STATUSES: &[&str] = &[
+    "Proposed",
+    "Accepted",
+    "Rejected",
+    "Deprecated",
+    "Superseded",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdrEntry {
@@ -24,6 +33,26 @@ pub struct AdrEntry {
 pub enum ListAdrsResult {
     Entries(Vec<AdrEntry>),
     MissingDirectory(PathBuf),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValidationIssue {
+    pub file: String,
+    pub code: &'static str,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckAdrsResult {
+    Valid,
+    Invalid(Vec<ValidationIssue>),
+    MissingDirectory(PathBuf),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckOutputFormat {
+    Human,
+    Json,
 }
 
 #[derive(Debug)]
@@ -224,6 +253,226 @@ pub fn list_adrs(repo_root: &Path) -> io::Result<ListAdrsResult> {
     Ok(ListAdrsResult::Entries(entries))
 }
 
+pub fn check_adrs(repo_root: &Path) -> io::Result<CheckAdrsResult> {
+    let adr_path = repo_root.join(ADR_DIR.trim_end_matches('/'));
+    let read_dir = match fs::read_dir(&adr_path) {
+        Ok(read_dir) => read_dir,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return Ok(CheckAdrsResult::MissingDirectory(adr_path));
+        }
+        Err(error) => return Err(error),
+    };
+
+    let mut issues = Vec::new();
+    let mut adr_files = Vec::new();
+
+    for dir_entry in read_dir {
+        let dir_entry = dir_entry?;
+        if !dir_entry.file_type()?.is_file() {
+            continue;
+        }
+
+        let file_name = dir_entry.file_name().to_string_lossy().into_owned();
+        if file_name.ends_with(".md")
+            && !is_adr_filename(&file_name)
+            && file_name != TEMPLATE_FILE_NAME
+        {
+            issues.push(ValidationIssue {
+                file: file_name.clone(),
+                code: "invalid_filename",
+                message: format!("{file_name} does not match ADR naming pattern"),
+            });
+            continue;
+        }
+
+        if !is_adr_filename(&file_name) {
+            continue;
+        }
+
+        let Some((_, sort_id)) = extract_id(&file_name) else {
+            continue;
+        };
+
+        let content = fs::read_to_string(dir_entry.path())?;
+        adr_files.push((file_name, sort_id, content));
+    }
+
+    let mut id_to_files: std::collections::BTreeMap<u64, Vec<String>> =
+        std::collections::BTreeMap::new();
+    for (file_name, sort_id, _) in &adr_files {
+        id_to_files
+            .entry(*sort_id)
+            .or_default()
+            .push(file_name.clone());
+    }
+
+    for (sort_id, files) in id_to_files {
+        if files.len() > 1 {
+            let shared_by = files.join(", ");
+            for file in files {
+                issues.push(ValidationIssue {
+                    file,
+                    code: "duplicate_id",
+                    message: format!("numeric ADR ID {sort_id} is shared by: {shared_by}"),
+                });
+            }
+        }
+    }
+
+    for (file_name, _, content) in &adr_files {
+        validate_adr_content(file_name, content, &mut issues);
+    }
+
+    issues.sort_by(|left, right| {
+        left.file
+            .cmp(&right.file)
+            .then_with(|| left.code.cmp(right.code))
+            .then_with(|| left.message.cmp(&right.message))
+    });
+
+    if issues.is_empty() {
+        Ok(CheckAdrsResult::Valid)
+    } else {
+        Ok(CheckAdrsResult::Invalid(issues))
+    }
+}
+
+pub fn check_has_failures(result: &CheckAdrsResult) -> bool {
+    !matches!(result, CheckAdrsResult::Valid)
+}
+
+pub fn format_check_result(result: &CheckAdrsResult, format: CheckOutputFormat) -> String {
+    match (result, format) {
+        (CheckAdrsResult::Valid, CheckOutputFormat::Human) => {
+            "All ADRs in docs/adr/ are valid.\n".to_string()
+        }
+        (CheckAdrsResult::Valid, CheckOutputFormat::Json) => {
+            "{\"valid\":true,\"issues\":[]}\n".to_string()
+        }
+        (CheckAdrsResult::MissingDirectory(path), CheckOutputFormat::Human) => {
+            format!("ADR directory '{}' does not exist.\n", path.display())
+        }
+        (CheckAdrsResult::MissingDirectory(path), CheckOutputFormat::Json) => {
+            let message = format!("ADR directory '{}' does not exist.", path.display());
+            format!(
+                "{{\"valid\":false,\"issues\":[{{\"file\":\"\",\"code\":\"missing_directory\",\"message\":\"{}\"}}]}}\n",
+                json_escape(&message)
+            )
+        }
+        (CheckAdrsResult::Invalid(issues), CheckOutputFormat::Human) => format_human_issues(issues),
+        (CheckAdrsResult::Invalid(issues), CheckOutputFormat::Json) => format_json_issues(issues),
+    }
+}
+
+fn validate_adr_content(file_name: &str, content: &str, issues: &mut Vec<ValidationIssue>) {
+    for section in REQUIRED_SECTIONS {
+        match extract_section_content(content, section) {
+            SectionContent::Missing => issues.push(ValidationIssue {
+                file: file_name.to_string(),
+                code: "missing_section",
+                message: format!("missing required section '{section}'"),
+            }),
+            SectionContent::Empty => issues.push(ValidationIssue {
+                file: file_name.to_string(),
+                code: "empty_section",
+                message: format!("required section '{section}' is empty"),
+            }),
+            SectionContent::Present(value) if *section == "Status" => {
+                if !SUPPORTED_STATUSES.contains(&value.as_str()) {
+                    issues.push(ValidationIssue {
+                        file: file_name.to_string(),
+                        code: "invalid_status",
+                        message: format!("unsupported status '{value}'"),
+                    });
+                }
+            }
+            SectionContent::Present(_) => {}
+        }
+    }
+}
+
+enum SectionContent {
+    Missing,
+    Empty,
+    Present(String),
+}
+
+fn extract_section_content(content: &str, section_name: &str) -> SectionContent {
+    let heading = format!("## {section_name}");
+    let mut in_section = false;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if !in_section {
+            if trimmed == heading {
+                in_section = true;
+            }
+            continue;
+        }
+
+        if trimmed.starts_with('#') {
+            return SectionContent::Empty;
+        }
+        if !trimmed.is_empty() {
+            return SectionContent::Present(trimmed.to_string());
+        }
+    }
+
+    if in_section {
+        SectionContent::Empty
+    } else {
+        SectionContent::Missing
+    }
+}
+
+fn format_human_issues(issues: &[ValidationIssue]) -> String {
+    let issue_label = if issues.len() == 1 { "issue" } else { "issues" };
+    let mut output = format!(
+        "ADR validation failed ({} {issue_label}):\n\n",
+        issues.len()
+    );
+    for issue in issues {
+        output.push_str(&format!(
+            "{}: {} ({})\n",
+            issue.file, issue.message, issue.code
+        ));
+    }
+    output
+}
+
+fn format_json_issues(issues: &[ValidationIssue]) -> String {
+    let mut output = String::from("{\"valid\":false,\"issues\":[");
+    for (index, issue) in issues.iter().enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str(&format!(
+            "{{\"file\":\"{}\",\"code\":\"{}\",\"message\":\"{}\"}}",
+            json_escape(&issue.file),
+            json_escape(issue.code),
+            json_escape(&issue.message)
+        ));
+    }
+    output.push_str("]}\n");
+    output
+}
+
+fn json_escape(value: &str) -> String {
+    let mut output = String::with_capacity(value.len());
+    for ch in value.chars() {
+        match ch {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\n' => output.push_str("\\n"),
+            '\r' => output.push_str("\\r"),
+            '\t' => output.push_str("\\t"),
+            ch if ch.is_control() => output.push_str(&format!("\\u{:04x}", ch as u32)),
+            ch => output.push(ch),
+        }
+    }
+    output
+}
+
 pub fn format_adrs_table(entries: &[AdrEntry]) -> String {
     let mut output = String::from("ADRs (docs/adr/)\n\nID    Status    Title    File\n");
     for entry in entries {
@@ -265,25 +514,10 @@ fn extract_title(content: &str) -> Option<String> {
 }
 
 fn extract_status(content: &str) -> Option<String> {
-    let mut in_status_section = false;
-    for line in content.lines() {
-        let trimmed = line.trim();
-        if !in_status_section {
-            if trimmed == "## Status" {
-                in_status_section = true;
-            }
-            continue;
-        }
-
-        if trimmed.starts_with('#') {
-            break;
-        }
-        if !trimmed.is_empty() {
-            return Some(trimmed.to_string());
-        }
+    match extract_section_content(content, "Status") {
+        SectionContent::Present(value) => Some(value),
+        SectionContent::Missing | SectionContent::Empty => None,
     }
-
-    None
 }
 
 #[cfg(test)]
@@ -411,6 +645,135 @@ mod tests {
     }
 
     const TEMPLATE: &str = "# Title\n\n## Status\n\nWhat is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?\n\n## Context\n\nContext text.\n";
+    const VALID_ADR: &str = "# Valid ADR\n\n## Status\n\nAccepted\n\n## Context\n\nContext text.\n\n## Decision\n\nDecision text.\n\n## Consequences\n\nConsequence text.\n";
+
+    #[test]
+    fn check_adrs_accepts_valid_adr_files() {
+        let temp_dir = unique_temp_dir("adrman_core_check_valid");
+        write_file(&temp_dir.join("docs/adr/0001-valid.md"), VALID_ADR);
+
+        let result = check_adrs(&temp_dir).expect("check should succeed");
+        assert_eq!(result, CheckAdrsResult::Valid);
+    }
+
+    #[test]
+    fn check_adrs_reports_invalid_filename() {
+        let temp_dir = unique_temp_dir("adrman_core_check_invalid_filename");
+        write_file(&temp_dir.join("docs/adr/notes.md"), "# Notes\n");
+
+        let result = check_adrs(&temp_dir).expect("check should succeed");
+        let CheckAdrsResult::Invalid(issues) = result else {
+            panic!("invalid filename should fail validation");
+        };
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues[0].file, "notes.md");
+        assert_eq!(issues[0].code, "invalid_filename");
+    }
+
+    #[test]
+    fn check_adrs_ignores_template_for_invalid_filename_checks() {
+        let temp_dir = unique_temp_dir("adrman_core_check_template_ignored");
+        write_file(&temp_dir.join("docs/adr/.adr-template.md"), TEMPLATE);
+
+        let result = check_adrs(&temp_dir).expect("check should succeed");
+        assert_eq!(result, CheckAdrsResult::Valid);
+    }
+
+    #[test]
+    fn check_adrs_reports_duplicate_numeric_ids() {
+        let temp_dir = unique_temp_dir("adrman_core_check_duplicate_ids");
+        write_file(&temp_dir.join("docs/adr/0002-alpha.md"), VALID_ADR);
+        write_file(&temp_dir.join("docs/adr/2-beta.md"), VALID_ADR);
+
+        let result = check_adrs(&temp_dir).expect("check should succeed");
+        let CheckAdrsResult::Invalid(issues) = result else {
+            panic!("duplicate ids should fail validation");
+        };
+        assert_eq!(issues.len(), 2);
+        assert!(issues.iter().all(|issue| issue.code == "duplicate_id"));
+    }
+
+    #[test]
+    fn check_adrs_reports_missing_required_section() {
+        let temp_dir = unique_temp_dir("adrman_core_check_missing_section");
+        write_file(
+            &temp_dir.join("docs/adr/0001-missing-context.md"),
+            "# Missing Context\n\n## Status\n\nAccepted\n\n## Decision\n\nDecision.\n\n## Consequences\n\nConsequences.\n",
+        );
+
+        let result = check_adrs(&temp_dir).expect("check should succeed");
+        let CheckAdrsResult::Invalid(issues) = result else {
+            panic!("missing section should fail validation");
+        };
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == "missing_section" && issue.message.contains("Context"))
+        );
+    }
+
+    #[test]
+    fn check_adrs_reports_empty_required_section() {
+        let temp_dir = unique_temp_dir("adrman_core_check_empty_section");
+        write_file(
+            &temp_dir.join("docs/adr/0001-empty-decision.md"),
+            "# Empty Decision\n\n## Status\n\nAccepted\n\n## Context\n\nContext.\n\n## Decision\n\n## Consequences\n\nConsequences.\n",
+        );
+
+        let result = check_adrs(&temp_dir).expect("check should succeed");
+        let CheckAdrsResult::Invalid(issues) = result else {
+            panic!("empty section should fail validation");
+        };
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.code == "empty_section" && issue.message.contains("Decision"))
+        );
+    }
+
+    #[test]
+    fn check_adrs_reports_invalid_status() {
+        let temp_dir = unique_temp_dir("adrman_core_check_invalid_status");
+        write_file(
+            &temp_dir.join("docs/adr/0001-invalid-status.md"),
+            "# Invalid Status\n\n## Status\n\nDraft\n\n## Context\n\nContext.\n\n## Decision\n\nDecision.\n\n## Consequences\n\nConsequences.\n",
+        );
+
+        let result = check_adrs(&temp_dir).expect("check should succeed");
+        let CheckAdrsResult::Invalid(issues) = result else {
+            panic!("invalid status should fail validation");
+        };
+        assert!(issues.iter().any(|issue| issue.code == "invalid_status"));
+    }
+
+    #[test]
+    fn check_adrs_reports_missing_directory() {
+        let temp_dir = unique_temp_dir("adrman_core_check_missing_directory");
+
+        let result = check_adrs(&temp_dir).expect("check should succeed");
+        let CheckAdrsResult::MissingDirectory(path) = result else {
+            panic!("missing directory should be reported");
+        };
+        assert_eq!(path, temp_dir.join("docs/adr"));
+    }
+
+    #[test]
+    fn format_check_result_json_for_success_and_failure() {
+        let success = format_check_result(&CheckAdrsResult::Valid, CheckOutputFormat::Json);
+        assert_eq!(success, "{\"valid\":true,\"issues\":[]}\n");
+
+        let failure = format_check_result(
+            &CheckAdrsResult::Invalid(vec![ValidationIssue {
+                file: "notes.md".to_string(),
+                code: "invalid_filename",
+                message: "notes.md does not match ADR naming pattern".to_string(),
+            }]),
+            CheckOutputFormat::Json,
+        );
+        assert!(failure.contains("\"valid\":false"));
+        assert!(failure.contains("\"file\":\"notes.md\""));
+        assert!(failure.contains("\"code\":\"invalid_filename\""));
+    }
 
     #[test]
     fn slugify_title_normalizes_punctuation() {

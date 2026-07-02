@@ -97,3 +97,32 @@ Example:
 ```bash
 adr new "Use SQLite for local cache"
 ```
+
+### `adr check` / `adr validate`
+
+- Validates ADR files in `docs/adr/` only.
+- Reports markdown files in `docs/adr/` that do not match `^[0-9]+[-_ ].*\.md$`, except `docs/adr/.adr-template.md`.
+- Detects duplicate numeric ADR IDs across included files.
+- Requires Nygard sections with exact `##` headings:
+  - `Status`
+  - `Context`
+  - `Decision`
+  - `Consequences`
+- Reports missing or empty required sections.
+- Validates `Status` values against:
+  - `Proposed`
+  - `Accepted`
+  - `Rejected`
+  - `Deprecated`
+  - `Superseded`
+- Prints human-readable output by default.
+- Supports `--format json` for agents and CI.
+- Exits with status code `0` when all ADRs are valid.
+- Exits with a non-zero status code when validation fails or `docs/adr/` is missing.
+
+Examples:
+
+```bash
+adr check
+adr validate --format json
+```
