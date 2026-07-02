@@ -77,3 +77,23 @@ ADRs (docs/adr/)
 
 ID    Status    Title    File
 ```
+
+### `adr new "<title>"`
+
+- Requires a title argument.
+- Requires an existing ADR workspace: `docs/adr/` and `docs/adr/.adr-template.md`.
+- Does not create `docs/adr/` or bootstrap a template when either is missing.
+- Discovers the next ADR ID from files in `docs/adr/` matching `^[0-9]+[-_ ].*\.md$`.
+- Assigns the highest numeric filename prefix plus one, formatted as four digits (for example `0005`).
+- Builds filenames as `<id>-<slug>.md`, where the slug is a lowercase ASCII form of the title.
+- Populates new files from `docs/adr/.adr-template.md`:
+  - Replaces `# Title` with the provided title.
+  - Sets the initial `## Status` content to `Proposed`.
+- Refuses to overwrite an existing target file.
+- Prints the created file path on success.
+
+Example:
+
+```bash
+adr new "Use SQLite for local cache"
+```

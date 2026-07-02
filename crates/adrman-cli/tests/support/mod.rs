@@ -31,6 +31,18 @@ impl CliTestWorkspace {
         self.write_file(&format!("docs/adr/{file_name}"), contents);
     }
 
+    #[allow(dead_code)]
+    pub fn write_adr_template(&self, contents: &str) {
+        self.write_file("docs/adr/.adr-template.md", contents);
+    }
+
+    #[allow(dead_code)]
+    pub fn write_default_adr_template(&self) {
+        self.write_adr_template(
+            "# Title\n\n## Status\n\nWhat is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?\n\n## Context\n\nWhat is the issue that we're seeing that is motivating this decision or change?\n\n## Decision\n\nWhat is the change that we're proposing and/or doing?\n\n## Consequences\n\nWhat becomes easier or more difficult to do because of this change?\n",
+        );
+    }
+
     pub fn run(&self, args: &[&str]) -> CliRun {
         let mut command = Command::cargo_bin("adr").expect("compiled adr binary should exist");
         command.current_dir(self.path());

@@ -1,10 +1,14 @@
 use regex::Regex;
-use std::fs;
-use std::io;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 const ADR_DIR: &str = "docs/adr/";
+const TEMPLATE_REL_PATH: &str = "docs/adr/.adr-template.md";
+const TITLE_PLACEHOLDER_LINE: &str = "# Title";
+const STATUS_HEADING: &str = "## Status";
+const INITIAL_STATUS: &str = "Proposed";
 const UNKNOWN: &str = "Unknown";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,6 +24,160 @@ pub struct AdrEntry {
 pub enum ListAdrsResult {
     Entries(Vec<AdrEntry>),
     MissingDirectory(PathBuf),
+}
+
+#[derive(Debug)]
+pub enum NewAdrError {
+    MissingTemplate,
+    EmptySlug,
+    TargetExists(PathBuf),
+    Io(io::Error),
+}
+
+impl std::fmt::Display for NewAdrError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingTemplate => write!(f, "{TEMPLATE_REL_PATH} is missing"),
+            Self::EmptySlug => write!(f, "title cannot be converted to a slug"),
+            Self::TargetExists(path) => {
+                write!(f, "target file already exists: {}", path.display())
+            }
+            Self::Io(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl std::error::Error for NewAdrError {}
+
+pub fn create_new_adr(repo_root: &Path, title: &str) -> Result<PathBuf, NewAdrError> {
+    let template = read_template(repo_root)?;
+    let slug = slugify_title(title)?;
+    let next_id = discover_next_adr_id(repo_root).map_err(NewAdrError::Io)?;
+    let file_name = format!("{:04}-{slug}.md", next_id);
+    let target_path = repo_root
+        .join(ADR_DIR.trim_end_matches('/'))
+        .join(&file_name);
+
+    let content = populate_template(&template, title);
+    write_new_adr_file(&target_path, &content)?;
+
+    Ok(target_path)
+}
+
+fn write_new_adr_file(target_path: &Path, content: &str) -> Result<(), NewAdrError> {
+    match OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(target_path)
+    {
+        Ok(mut file) => file
+            .write_all(content.as_bytes())
+            .map_err(NewAdrError::Io)
+            .map(|_| ()),
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+            Err(NewAdrError::TargetExists(target_path.to_path_buf()))
+        }
+        Err(error) => Err(NewAdrError::Io(error)),
+    }
+}
+
+fn read_template(repo_root: &Path) -> Result<String, NewAdrError> {
+    let template_path = repo_root.join(TEMPLATE_REL_PATH);
+    match fs::read_to_string(&template_path) {
+        Ok(content) => Ok(content),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Err(NewAdrError::MissingTemplate),
+        Err(error) => Err(NewAdrError::Io(error)),
+    }
+}
+
+fn discover_next_adr_id(repo_root: &Path) -> io::Result<u64> {
+    let adr_path = repo_root.join(ADR_DIR.trim_end_matches('/'));
+    let read_dir = fs::read_dir(&adr_path)?;
+    let mut max_id = 0;
+
+    for dir_entry in read_dir {
+        let dir_entry = dir_entry?;
+        if !dir_entry.file_type()?.is_file() {
+            continue;
+        }
+
+        let file_name = dir_entry.file_name().to_string_lossy().into_owned();
+        if !is_adr_filename(&file_name) {
+            continue;
+        }
+
+        let Some((_, sort_id)) = extract_id(&file_name) else {
+            continue;
+        };
+
+        max_id = max_id.max(sort_id);
+    }
+
+    Ok(max_id + 1)
+}
+
+fn slugify_title(title: &str) -> Result<String, NewAdrError> {
+    static NON_ASCII_ALNUM_RE: OnceLock<Regex> = OnceLock::new();
+    let pattern =
+        NON_ASCII_ALNUM_RE.get_or_init(|| Regex::new(r"[^a-z0-9]+").expect("valid slug regex"));
+    let lowercased = title.to_lowercase();
+    let slug = pattern
+        .replace_all(&lowercased, "-")
+        .trim_matches('-')
+        .to_string();
+
+    if slug.is_empty() {
+        return Err(NewAdrError::EmptySlug);
+    }
+
+    Ok(slug)
+}
+
+fn populate_template(template: &str, title: &str) -> String {
+    let mut output = String::new();
+    let mut in_status_section = false;
+    let mut status_replaced = false;
+    let mut title_replaced = false;
+
+    for (index, line) in template.lines().enumerate() {
+        if index > 0 {
+            output.push('\n');
+        }
+
+        if !title_replaced && index == 0 && line == TITLE_PLACEHOLDER_LINE {
+            output.push_str(&format!("# {title}"));
+            title_replaced = true;
+            continue;
+        }
+
+        if line.trim() == STATUS_HEADING {
+            in_status_section = true;
+            output.push_str(line);
+            continue;
+        }
+
+        if in_status_section
+            && !status_replaced
+            && !line.trim().is_empty()
+            && !line.trim().starts_with('#')
+        {
+            output.push_str(INITIAL_STATUS);
+            status_replaced = true;
+            continue;
+        }
+
+        if in_status_section && line.trim().starts_with('#') {
+            in_status_section = false;
+        }
+
+        output.push_str(line);
+    }
+
+    if template.ends_with('\n') {
+        output.push('\n');
+    }
+
+    output
 }
 
 pub fn list_adrs(repo_root: &Path) -> io::Result<ListAdrsResult> {
@@ -250,5 +408,120 @@ mod tests {
 
         let ids: Vec<&str> = entries.iter().map(|entry| entry.id.as_str()).collect();
         assert_eq!(ids, vec!["001", "01", "1"]);
+    }
+
+    const TEMPLATE: &str = "# Title\n\n## Status\n\nWhat is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?\n\n## Context\n\nContext text.\n";
+
+    #[test]
+    fn slugify_title_normalizes_punctuation() {
+        assert_eq!(
+            slugify_title("API Design (v2)!!").expect("slug should be generated"),
+            "api-design-v2"
+        );
+    }
+
+    #[test]
+    fn slugify_title_rejects_empty_slug() {
+        assert!(matches!(slugify_title("!!!"), Err(NewAdrError::EmptySlug)));
+    }
+
+    #[test]
+    fn discover_next_adr_id_ignores_template_and_non_adr_files() {
+        let temp_dir = unique_temp_dir("adrman_core_next_id_scope");
+        write_file(&temp_dir.join("docs/adr/.adr-template.md"), TEMPLATE);
+        write_file(
+            &temp_dir.join("docs/adr/0004-use-openspec.md"),
+            "# Use OpenSpec\n\n## Status\n\nAccepted\n",
+        );
+        write_file(
+            &temp_dir.join("docs/adr/notes.md"),
+            "# Notes\n\n## Status\n\nAccepted\n",
+        );
+
+        assert_eq!(
+            discover_next_adr_id(&temp_dir).expect("next id should be discovered"),
+            5
+        );
+    }
+
+    #[test]
+    fn discover_next_adr_id_uses_numeric_maximum() {
+        let temp_dir = unique_temp_dir("adrman_core_next_id_max");
+        write_file(&temp_dir.join("docs/adr/.adr-template.md"), TEMPLATE);
+        write_file(
+            &temp_dir.join("docs/adr/2-beta.md"),
+            "# Beta\n\n## Status\n\nAccepted\n",
+        );
+        write_file(
+            &temp_dir.join("docs/adr/0004-use-openspec.md"),
+            "# Use OpenSpec\n\n## Status\n\nAccepted\n",
+        );
+
+        assert_eq!(
+            discover_next_adr_id(&temp_dir).expect("next id should be discovered"),
+            5
+        );
+    }
+
+    #[test]
+    fn discover_next_adr_id_starts_at_one_without_adr_files() {
+        let temp_dir = unique_temp_dir("adrman_core_next_id_empty");
+        write_file(&temp_dir.join("docs/adr/.adr-template.md"), TEMPLATE);
+
+        assert_eq!(
+            discover_next_adr_id(&temp_dir).expect("next id should be discovered"),
+            1
+        );
+    }
+
+    #[test]
+    fn populate_template_replaces_title_and_status() {
+        let content = populate_template(TEMPLATE, "Use SQLite for local cache");
+        assert!(content.starts_with("# Use SQLite for local cache\n\n## Status\n\nProposed\n"));
+        assert!(content.contains("## Context\n\nContext text."));
+    }
+
+    #[test]
+    fn create_new_adr_writes_expected_file() {
+        let temp_dir = unique_temp_dir("adrman_core_create_new");
+        write_file(&temp_dir.join("docs/adr/.adr-template.md"), TEMPLATE);
+        write_file(
+            &temp_dir.join("docs/adr/0004-use-openspec.md"),
+            "# Use OpenSpec\n\n## Status\n\nAccepted\n",
+        );
+
+        let created =
+            create_new_adr(&temp_dir, "Use SQLite for local cache").expect("adr should be created");
+        assert_eq!(
+            created,
+            temp_dir.join("docs/adr/0005-use-sqlite-for-local-cache.md")
+        );
+
+        let content = fs::read_to_string(&created).expect("created file should be readable");
+        assert!(content.starts_with("# Use SQLite for local cache\n\n## Status\n\nProposed\n"));
+    }
+
+    #[test]
+    fn create_new_adr_fails_when_template_is_missing() {
+        let temp_dir = unique_temp_dir("adrman_core_missing_template");
+        fs::create_dir_all(temp_dir.join("docs/adr")).expect("adr directory should exist");
+
+        let error = create_new_adr(&temp_dir, "Use SQLite for local cache")
+            .expect_err("missing template should fail");
+        assert!(matches!(error, NewAdrError::MissingTemplate));
+    }
+
+    #[test]
+    fn write_new_adr_file_fails_when_target_already_exists() {
+        let temp_dir = unique_temp_dir("adrman_core_target_exists");
+        let target_path = temp_dir.join("docs/adr/0001-use-sqlite-for-local-cache.md");
+        write_file(&target_path, "existing content");
+
+        let error = write_new_adr_file(&target_path, "new content")
+            .expect_err("existing target should fail");
+        assert!(matches!(error, NewAdrError::TargetExists(_)));
+
+        let content = fs::read_to_string(&target_path).expect("existing file should remain");
+        assert_eq!(content, "existing content");
     }
 }

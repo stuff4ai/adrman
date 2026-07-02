@@ -1,4 +1,4 @@
-use adrman_core::{ListAdrsResult, format_adrs_table, list_adrs};
+use adrman_core::{ListAdrsResult, create_new_adr, format_adrs_table, list_adrs};
 use std::env;
 use std::path::Path;
 use std::process::ExitCode;
@@ -7,13 +7,39 @@ fn main() -> ExitCode {
     let mut args = env::args();
     let _binary = args.next();
     let command = args.next();
-    let extra = args.next();
 
-    match (command.as_deref(), extra) {
-        (Some("list" | "ls"), None) => run_list(),
+    match command.as_deref() {
+        Some("list" | "ls") if args.next().is_none() => run_list(),
+        Some("new") => run_new(&mut args),
         _ => {
-            eprintln!("Usage: adr <COMMAND>\n\nCommands:\n  list, ls    List ADRs from docs/adr/");
+            eprintln!(
+                "Usage: adr <COMMAND>\n\nCommands:\n  list, ls    List ADRs from docs/adr/\n  new         Create a new ADR from a title"
+            );
             ExitCode::from(2)
+        }
+    }
+}
+
+fn run_new(args: &mut impl Iterator<Item = String>) -> ExitCode {
+    let title = args.next();
+    if args.next().is_some() {
+        eprintln!("Error: unexpected extra arguments");
+        return ExitCode::from(1);
+    }
+
+    let Some(title) = title.filter(|title| !title.is_empty()) else {
+        eprintln!("Error: title is required");
+        return ExitCode::from(1);
+    };
+
+    match create_new_adr(Path::new("."), &title) {
+        Ok(path) => {
+            println!("{}", path.display());
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("Error: {error}");
+            ExitCode::from(1)
         }
     }
 }
