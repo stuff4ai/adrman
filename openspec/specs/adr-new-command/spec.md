@@ -1,7 +1,7 @@
 # adr-new-command Specification
 
 ## Purpose
-TBD - created by archiving change add-adr-new-command. Update Purpose after archive.
+Provide a CLI workflow to create new ADR files in `docs/adr/` from a title, using the project template, deterministic ID assignment, and slugged filenames.
 ## Requirements
 ### Requirement: ADR new command
 The CLI SHALL provide an `adr new` command that creates a new ADR file from a required title argument.
