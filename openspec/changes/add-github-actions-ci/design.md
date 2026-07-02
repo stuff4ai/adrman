@@ -40,4 +40,4 @@ adrman is a Rust Cargo workspace (`adrman-cli`, `adrman-core`) with a pinned too
 
 - [Risk] CI only on Linux may miss platform-specific issues. → Mitigation: acceptable non-goal; local development and future changes can add matrix if needed.
 - [Risk] `--locked` fails when `Cargo.lock` is out of sync. → Mitigation: intentional guardrail; contributors must commit lockfile updates.
-- [Risk] Dependabot PR volume despite limits. → Mitigation: weekly cadence and per-ecosystem cap of five open PRs.
+- [Risk] Dependabot PR volume despite limits. → Mitigation: weekly cadence and per-ecosystem cap of three open PRs.
