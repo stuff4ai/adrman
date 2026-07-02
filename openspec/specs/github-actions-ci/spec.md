@@ -1,7 +1,7 @@
 # github-actions-ci Specification
 
 ## Purpose
-TBD - created by archiving change add-github-actions-ci. Update Purpose after archive.
+Define continuous integration and dependency update automation for the adrman Rust workspace via GitHub Actions and Dependabot.
 ## Requirements
 ### Requirement: CI workflow triggers
 The repository SHALL provide a GitHub Actions workflow that runs on pull requests targeting `main`, pushes to `main`, and manual `workflow_dispatch`.
