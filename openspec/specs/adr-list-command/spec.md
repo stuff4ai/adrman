@@ -1,7 +1,7 @@
 # adr-list-command Specification
 
 ## Purpose
-TBD - created by archiving change add-adr-list-command. Update Purpose after archive.
+Provide a CLI workflow to list ADR files from `docs/adr/`, including command aliases, file discovery, metadata extraction, ordering, output format, and missing-directory handling.
 ## Requirements
 ### Requirement: ADR list commands
 The CLI SHALL provide `adr list` and `adr ls` commands, and both commands MUST execute the same ADR listing behavior.
@@ -13,13 +13,6 @@ The CLI SHALL provide `adr list` and `adr ls` commands, and both commands MUST e
 #### Scenario: User invokes the alias list command
 - **WHEN** a user runs `adr ls`
 - **THEN** the CLI executes the same ADR listing workflow and prints ADR table output with identical semantics
-
-### Requirement: CLI binary naming
-The distributed CLI binary MUST be named `adr`.
-
-#### Scenario: User runs the CLI
-- **WHEN** the CLI is built and executed from Cargo binary output
-- **THEN** the binary command name is `adr`
 
 ### Requirement: ADR file discovery scope
 The ADR listing workflow SHALL read candidates only from the `docs/adr/` directory and MUST include only files whose base filename matches `^[0-9]+[-_ ].*\.md$`.
@@ -74,4 +67,3 @@ The command SHALL sort output rows by numeric `ID` ascending, then by `File` asc
 #### Scenario: Filename tiebreaker for equal IDs
 - **WHEN** two included files share the same numeric `ID`
 - **THEN** rows are ordered by ascending base filename
-
