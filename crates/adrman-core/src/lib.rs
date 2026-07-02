@@ -297,11 +297,12 @@ pub fn check_adrs(repo_root: &Path) -> io::Result<CheckAdrsResult> {
         adr_files.push((file_name, sort_id, content));
     }
 
-    let mut id_to_files = std::collections::BTreeMap::new();
+    let mut id_to_files: std::collections::BTreeMap<u64, Vec<String>> =
+        std::collections::BTreeMap::new();
     for (file_name, sort_id, _) in &adr_files {
         id_to_files
             .entry(*sort_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(file_name.clone());
     }
 

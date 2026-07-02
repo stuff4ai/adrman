@@ -99,6 +99,7 @@ impl CliRun {
         );
     }
 
+    #[allow(dead_code)]
     pub fn assert_stderr<P>(&self, predicate: P)
     where
         P: Predicate<str>,
