@@ -126,3 +126,22 @@ Examples:
 adr check
 adr validate --format json
 ```
+
+### `adr index`
+
+- Generates or updates `docs/adr/README.md`.
+- Reuses the same ADR discovery and metadata extraction rules as `adr list`.
+- Writes a Markdown table with columns `ID`, `Status`, `Title`, and `ADR`.
+- Each `ADR` cell links to the ADR filename with a relative Markdown link.
+- Sorts rows by numeric `ID`, then by `File`.
+- Prints the written index path on success.
+- Supports `--check` for CI:
+  - Exits with status code `0` when `docs/adr/README.md` exists and matches the generated index.
+  - Exits with a non-zero status code when the index is missing, stale, or `docs/adr/` is missing.
+
+Examples:
+
+```bash
+adr index
+adr index --check
+```

@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 const ADR_DIR: &str = "docs/adr/";
+const INDEX_REL_PATH: &str = "docs/adr/README.md";
 const TEMPLATE_REL_PATH: &str = "docs/adr/.adr-template.md";
 const TEMPLATE_FILE_NAME: &str = ".adr-template.md";
 const TITLE_PLACEHOLDER_LINE: &str = "# Title";
@@ -53,6 +54,20 @@ pub enum CheckAdrsResult {
 pub enum CheckOutputFormat {
     Human,
     Json,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IndexGenerateResult {
+    Written(PathBuf),
+    MissingDirectory(PathBuf),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IndexCheckResult {
+    UpToDate,
+    Stale,
+    MissingIndex,
+    MissingDirectory(PathBuf),
 }
 
 #[derive(Debug)]
@@ -484,6 +499,86 @@ pub fn format_adrs_table(entries: &[AdrEntry]) -> String {
     output
 }
 
+pub fn format_adr_index(entries: &[AdrEntry]) -> String {
+    let mut output = String::from(
+        "# Architectural Decision Records\n\n| ID | Status | Title | ADR |\n| --- | --- | --- | --- |\n",
+    );
+    for entry in entries {
+        output.push_str(&format!(
+            "| {} | {} | {} | [{}]({}) |\n",
+            escape_markdown_table_cell(&entry.id),
+            escape_markdown_table_cell(&entry.status),
+            escape_markdown_table_cell(&entry.title),
+            escape_markdown_table_cell(&entry.file),
+            format_markdown_link_destination(&entry.file),
+        ));
+    }
+    output
+}
+
+pub fn generate_adr_index(repo_root: &Path) -> io::Result<IndexGenerateResult> {
+    let entries = match list_adrs(repo_root)? {
+        ListAdrsResult::Entries(entries) => entries,
+        ListAdrsResult::MissingDirectory(path) => {
+            return Ok(IndexGenerateResult::MissingDirectory(path));
+        }
+    };
+
+    let content = format_adr_index(&entries);
+    let index_path = repo_root.join(INDEX_REL_PATH);
+    if let Some(parent) = index_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&index_path, content)?;
+    Ok(IndexGenerateResult::Written(index_path))
+}
+
+pub fn check_adr_index(repo_root: &Path) -> io::Result<IndexCheckResult> {
+    let entries = match list_adrs(repo_root)? {
+        ListAdrsResult::Entries(entries) => entries,
+        ListAdrsResult::MissingDirectory(path) => {
+            return Ok(IndexCheckResult::MissingDirectory(path));
+        }
+    };
+
+    let expected = format_adr_index(&entries);
+    let index_path = repo_root.join(INDEX_REL_PATH);
+    let actual = match fs::read_to_string(&index_path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return Ok(IndexCheckResult::MissingIndex);
+        }
+        Err(error) => return Err(error),
+    };
+
+    if actual == expected {
+        Ok(IndexCheckResult::UpToDate)
+    } else {
+        Ok(IndexCheckResult::Stale)
+    }
+}
+
+fn escape_markdown_table_cell(value: &str) -> String {
+    value.replace('|', "\\|")
+}
+
+fn format_markdown_link_destination(path: &str) -> String {
+    let mut output = String::with_capacity(path.len());
+    for byte in path.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                output.push(byte as char);
+            }
+            _ => {
+                output.push('%');
+                output.push(char::from(b"0123456789ABCDEF"[(byte >> 4) as usize]));
+                output.push(char::from(b"0123456789ABCDEF"[(byte & 0xf) as usize]));
+            }
+        }
+    }
+    output
+}
+
 fn is_adr_filename(file_name: &str) -> bool {
     static ADR_FILENAME_RE: OnceLock<Regex> = OnceLock::new();
     ADR_FILENAME_RE
@@ -886,5 +981,128 @@ mod tests {
 
         let content = fs::read_to_string(&target_path).expect("existing file should remain");
         assert_eq!(content, "existing content");
+    }
+
+    #[test]
+    fn format_adr_index_renders_linked_table_rows() {
+        let entries = vec![AdrEntry {
+            id: "0001".to_string(),
+            status: "Accepted".to_string(),
+            title: "Use OpenSpec".to_string(),
+            file: "0001-use-openspec.md".to_string(),
+            sort_id: 1,
+        }];
+
+        let index = format_adr_index(&entries);
+        assert!(index.starts_with("# Architectural Decision Records\n\n"));
+        assert!(index.contains(
+            "| 0001 | Accepted | Use OpenSpec | [0001-use-openspec.md](0001-use-openspec.md) |"
+        ));
+    }
+
+    #[test]
+    fn format_adr_index_escapes_pipe_characters() {
+        let entries = vec![AdrEntry {
+            id: "0001".to_string(),
+            status: "Accepted".to_string(),
+            title: "A | B".to_string(),
+            file: "0001-a-b.md".to_string(),
+            sort_id: 1,
+        }];
+
+        let index = format_adr_index(&entries);
+        assert!(index.contains("| 0001 | Accepted | A \\| B | [0001-a-b.md](0001-a-b.md) |"));
+    }
+
+    #[test]
+    fn format_adr_index_percent_encodes_link_destinations_with_spaces() {
+        let entries = vec![AdrEntry {
+            id: "001".to_string(),
+            status: "Accepted".to_string(),
+            title: "Gap".to_string(),
+            file: "001 gap.md".to_string(),
+            sort_id: 1,
+        }];
+
+        let index = format_adr_index(&entries);
+        assert!(index.contains("| 001 | Accepted | Gap | [001 gap.md](001%20gap.md) |"));
+    }
+
+    #[test]
+    fn generate_adr_index_writes_expected_file() {
+        let temp_dir = unique_temp_dir("adrman_core_generate_index");
+        write_file(
+            &temp_dir.join("docs/adr/0001-first.md"),
+            "# First ADR\n\n## Status\n\nAccepted\n",
+        );
+
+        let result = generate_adr_index(&temp_dir).expect("index generation should succeed");
+        let IndexGenerateResult::Written(path) = result else {
+            panic!("index should be written");
+        };
+        assert_eq!(path, temp_dir.join("docs/adr/README.md"));
+
+        let content = fs::read_to_string(&path).expect("index should be readable");
+        assert!(
+            content.contains("| 0001 | Accepted | First ADR | [0001-first.md](0001-first.md) |")
+        );
+    }
+
+    #[test]
+    fn check_adr_index_succeeds_when_up_to_date() {
+        let temp_dir = unique_temp_dir("adrman_core_check_index_up_to_date");
+        write_file(
+            &temp_dir.join("docs/adr/0001-first.md"),
+            "# First ADR\n\n## Status\n\nAccepted\n",
+        );
+        generate_adr_index(&temp_dir).expect("index generation should succeed");
+
+        let result = check_adr_index(&temp_dir).expect("index check should succeed");
+        assert_eq!(result, IndexCheckResult::UpToDate);
+    }
+
+    #[test]
+    fn check_adr_index_reports_missing_index() {
+        let temp_dir = unique_temp_dir("adrman_core_check_index_missing");
+        write_file(
+            &temp_dir.join("docs/adr/0001-first.md"),
+            "# First ADR\n\n## Status\n\nAccepted\n",
+        );
+
+        let result = check_adr_index(&temp_dir).expect("index check should succeed");
+        assert_eq!(result, IndexCheckResult::MissingIndex);
+    }
+
+    #[test]
+    fn check_adr_index_reports_stale_index() {
+        let temp_dir = unique_temp_dir("adrman_core_check_index_stale");
+        write_file(
+            &temp_dir.join("docs/adr/0001-first.md"),
+            "# First ADR\n\n## Status\n\nAccepted\n",
+        );
+        write_file(
+            &temp_dir.join("docs/adr/README.md"),
+            "# Architectural Decision Records\n\n| ID | Status | Title | ADR |\n| --- | --- | --- | --- |\n",
+        );
+
+        let result = check_adr_index(&temp_dir).expect("index check should succeed");
+        assert_eq!(result, IndexCheckResult::Stale);
+    }
+
+    #[test]
+    fn generate_and_check_index_report_missing_directory() {
+        let temp_dir = unique_temp_dir("adrman_core_index_missing_directory");
+
+        let generate_result = generate_adr_index(&temp_dir).expect("generate should succeed");
+        assert!(matches!(
+            generate_result,
+            IndexGenerateResult::MissingDirectory(_)
+        ));
+
+        let check_result = check_adr_index(&temp_dir).expect("check should succeed");
+        assert!(matches!(
+            check_result,
+            IndexCheckResult::MissingDirectory(_)
+        ));
     }
 }
