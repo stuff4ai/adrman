@@ -44,8 +44,12 @@ impl CliTestWorkspace {
     }
 
     pub fn run(&self, args: &[&str]) -> CliRun {
+        self.run_in_dir(self.path(), args)
+    }
+
+    pub fn run_in_dir(&self, working_dir: &Path, args: &[&str]) -> CliRun {
         let mut command = Command::cargo_bin("adr").expect("compiled adr binary should exist");
-        command.current_dir(self.path());
+        command.current_dir(working_dir);
         command.args(args);
         let output = command.output().expect("CLI command should execute");
         CliRun::new(output)
