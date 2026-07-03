@@ -510,7 +510,7 @@ pub fn format_adr_index(entries: &[AdrEntry]) -> String {
             escape_markdown_table_cell(&entry.status),
             escape_markdown_table_cell(&entry.title),
             escape_markdown_table_cell(&entry.file),
-            escape_markdown_table_cell(&entry.file),
+            format_markdown_link_destination(&entry.file),
         ));
     }
     output
@@ -560,6 +560,23 @@ pub fn check_adr_index(repo_root: &Path) -> io::Result<IndexCheckResult> {
 
 fn escape_markdown_table_cell(value: &str) -> String {
     value.replace('|', "\\|")
+}
+
+fn format_markdown_link_destination(path: &str) -> String {
+    let mut output = String::with_capacity(path.len());
+    for byte in path.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                output.push(byte as char);
+            }
+            _ => {
+                output.push('%');
+                output.push(char::from(b"0123456789ABCDEF"[(byte >> 4) as usize]));
+                output.push(char::from(b"0123456789ABCDEF"[(byte & 0xf) as usize]));
+            }
+        }
+    }
+    output
 }
 
 fn is_adr_filename(file_name: &str) -> bool {
@@ -995,6 +1012,20 @@ mod tests {
 
         let index = format_adr_index(&entries);
         assert!(index.contains("| 0001 | Accepted | A \\| B | [0001-a-b.md](0001-a-b.md) |"));
+    }
+
+    #[test]
+    fn format_adr_index_percent_encodes_link_destinations_with_spaces() {
+        let entries = vec![AdrEntry {
+            id: "001".to_string(),
+            status: "Accepted".to_string(),
+            title: "Gap".to_string(),
+            file: "001 gap.md".to_string(),
+            sort_id: 1,
+        }];
+
+        let index = format_adr_index(&entries);
+        assert!(index.contains("| 001 | Accepted | Gap | [001 gap.md](001%20gap.md) |"));
     }
 
     #[test]

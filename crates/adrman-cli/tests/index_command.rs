@@ -43,6 +43,19 @@ fn index_rows_are_sorted_like_list_command() {
 }
 
 #[test]
+fn index_links_filenames_with_spaces_using_percent_encoding() {
+    let workspace = CliTestWorkspace::new();
+    workspace.write_adr("001 gap.md", "# Gap\n\n## Status\n\nAccepted\n");
+
+    let output = workspace.run(&["index"]);
+    output.assert_success();
+
+    let readme = fs::read_to_string(workspace.path().join("docs/adr/README.md"))
+        .expect("README should be created");
+    assert!(readme.contains("| 001 | Accepted | Gap | [001 gap.md](001%20gap.md) |"));
+}
+
+#[test]
 fn check_succeeds_when_index_is_up_to_date() {
     let workspace = CliTestWorkspace::new();
     workspace.write_adr("0001-first.md", "# First\n\n## Status\n\nAccepted\n");
