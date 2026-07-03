@@ -1,6 +1,7 @@
 use adrman_core::{
-    CheckOutputFormat, ListAdrsResult, check_adrs, check_has_failures, create_new_adr,
-    format_adrs_table, format_check_result, list_adrs,
+    CheckOutputFormat, IndexCheckResult, IndexGenerateResult, ListAdrsResult, check_adr_index,
+    check_adrs, check_has_failures, create_new_adr, format_adrs_table, format_check_result,
+    generate_adr_index, list_adrs,
 };
 use std::env;
 use std::path::Path;
@@ -15,9 +16,10 @@ fn main() -> ExitCode {
         Some("list" | "ls") if args.next().is_none() => run_list(),
         Some("new") => run_new(&mut args),
         Some("check" | "validate") => run_check(&mut args),
+        Some("index") => run_index(&mut args),
         _ => {
             eprintln!(
-                "Usage: adr <COMMAND>\n\nCommands:\n  list, ls         List ADRs from docs/adr/\n  new              Create a new ADR from a title\n  check, validate  Validate ADRs in docs/adr/"
+                "Usage: adr <COMMAND>\n\nCommands:\n  list, ls         List ADRs from docs/adr/\n  new              Create a new ADR from a title\n  check, validate  Validate ADRs in docs/adr/\n  index            Generate or verify docs/adr/README.md"
             );
             ExitCode::from(2)
         }
@@ -105,6 +107,60 @@ fn run_check(args: &mut impl Iterator<Item = String>) -> ExitCode {
         Err(error) => {
             eprintln!("Error: failed to check ADRs: {error}");
             ExitCode::from(1)
+        }
+    }
+}
+
+fn run_index(args: &mut impl Iterator<Item = String>) -> ExitCode {
+    let mut check_only = false;
+
+    for arg in args.by_ref() {
+        match arg.as_str() {
+            "--check" => check_only = true,
+            _ => {
+                eprintln!("Error: unexpected argument '{arg}'");
+                return ExitCode::from(2);
+            }
+        }
+    }
+
+    if check_only {
+        match check_adr_index(Path::new(".")) {
+            Ok(IndexCheckResult::UpToDate) => {
+                println!("docs/adr/README.md is up to date.");
+                ExitCode::SUCCESS
+            }
+            Ok(IndexCheckResult::Stale) => {
+                eprintln!("Error: docs/adr/README.md is stale. Run `adr index` to update it.");
+                ExitCode::from(1)
+            }
+            Ok(IndexCheckResult::MissingIndex) => {
+                eprintln!("Error: docs/adr/README.md is missing. Run `adr index` to create it.");
+                ExitCode::from(1)
+            }
+            Ok(IndexCheckResult::MissingDirectory(path)) => {
+                eprintln!("Error: ADR directory '{}' does not exist.", path.display());
+                ExitCode::from(1)
+            }
+            Err(error) => {
+                eprintln!("Error: failed to check ADR index: {error}");
+                ExitCode::from(1)
+            }
+        }
+    } else {
+        match generate_adr_index(Path::new(".")) {
+            Ok(IndexGenerateResult::Written(path)) => {
+                println!("{}", path.display());
+                ExitCode::SUCCESS
+            }
+            Ok(IndexGenerateResult::MissingDirectory(path)) => {
+                eprintln!("Error: ADR directory '{}' does not exist.", path.display());
+                ExitCode::from(1)
+            }
+            Err(error) => {
+                eprintln!("Error: failed to generate ADR index: {error}");
+                ExitCode::from(1)
+            }
         }
     }
 }
