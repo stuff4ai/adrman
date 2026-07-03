@@ -51,6 +51,24 @@ fn init_does_not_overwrite_existing_template() {
 }
 
 #[test]
+fn init_followed_by_new_creates_populated_adr() {
+    let workspace = CliTestWorkspace::new();
+
+    let init_output = workspace.run(&["init"]);
+    init_output.assert_success();
+
+    let new_output = workspace.run(&["new", "Use SQLite"]);
+    new_output.assert_success();
+    new_output.assert_stdout(predicate::str::contains("docs/adr/0001-use-sqlite.md"));
+
+    let created = workspace.path().join("docs/adr/0001-use-sqlite.md");
+    let content = fs::read_to_string(created).expect("created adr should be readable");
+    assert!(content.contains("# Use SQLite\n"));
+    assert!(!content.contains("# Title\n"));
+    assert!(content.contains("## Status\n\nProposed\n\n## Context"));
+}
+
+#[test]
 fn init_generated_template_matches_expected_content_exactly() {
     let workspace = CliTestWorkspace::new();
 

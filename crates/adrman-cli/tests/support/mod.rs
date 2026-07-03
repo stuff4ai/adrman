@@ -27,6 +27,7 @@ impl CliTestWorkspace {
             .expect("test file should be written");
     }
 
+    #[allow(dead_code)]
     pub fn write_adr(&self, file_name: &str, contents: &str) {
         self.write_file(&format!("docs/adr/{file_name}"), contents);
     }

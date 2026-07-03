@@ -212,29 +212,41 @@ fn populate_template(template: &str, title: &str) -> String {
     let mut title_replaced = false;
 
     for (index, line) in template.lines().enumerate() {
-        if index > 0 {
-            output.push('\n');
-        }
-
-        if !title_replaced && index == 0 && line == TITLE_PLACEHOLDER_LINE {
+        if !title_replaced && line == TITLE_PLACEHOLDER_LINE {
+            if index > 0 {
+                output.push('\n');
+            }
             output.push_str(&format!("# {title}"));
             title_replaced = true;
             continue;
         }
 
         if line.trim() == STATUS_HEADING {
+            if index > 0 {
+                output.push('\n');
+            }
             in_status_section = true;
             output.push_str(line);
+            output.push_str("\n\n");
             continue;
         }
 
-        if in_status_section
-            && !status_replaced
-            && !line.trim().is_empty()
-            && !line.trim().starts_with('#')
-        {
+        if in_status_section && !status_replaced {
+            if line.trim().is_empty() {
+                continue;
+            }
+            if line.trim().starts_with('#') {
+                output.push_str(INITIAL_STATUS);
+                status_replaced = true;
+                in_status_section = false;
+                output.push('\n');
+                output.push('\n');
+                output.push_str(line);
+                continue;
+            }
             output.push_str(INITIAL_STATUS);
             status_replaced = true;
+            in_status_section = false;
             continue;
         }
 
@@ -242,7 +254,15 @@ fn populate_template(template: &str, title: &str) -> String {
             in_status_section = false;
         }
 
+        if index > 0 {
+            output.push('\n');
+        }
         output.push_str(line);
+    }
+
+    if in_status_section && !status_replaced {
+        output.push('\n');
+        output.push_str(INITIAL_STATUS);
     }
 
     if template.ends_with('\n') {
@@ -965,6 +985,14 @@ mod tests {
         let content = populate_template(TEMPLATE, "Use SQLite for local cache");
         assert!(content.starts_with("# Use SQLite for local cache\n\n## Status\n\nProposed\n"));
         assert!(content.contains("## Context\n\nContext text."));
+    }
+
+    #[test]
+    fn populate_template_replaces_title_after_front_matter_and_fills_empty_status() {
+        let content = populate_template(DEFAULT_ADR_TEMPLATE, "Use SQLite");
+        assert!(content.contains("# Use SQLite\n"));
+        assert!(!content.contains("# Title\n"));
+        assert!(content.contains("## Status\n\nProposed\n\n## Context"));
     }
 
     #[test]
