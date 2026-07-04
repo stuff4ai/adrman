@@ -1,29 +1,26 @@
+mod cli;
+
 use adrman_core::{
     CheckOutputFormat, IndexCheckResult, IndexGenerateResult, InitAdrResult, ListAdrsResult,
     check_adr_index, check_adrs, check_has_failures, create_new_adr, format_adrs_table,
     format_check_result, generate_adr_index, init_adr_workspace, list_adrs,
 };
-use std::env;
+use cli::{CheckArgs, Commands, IndexArgs};
 use std::path::Path;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
-    let mut args = env::args();
-    let _binary = args.next();
-    let command = args.next();
+    let cli = match cli::parse() {
+        Ok(cli) => cli,
+        Err(code) => return code,
+    };
 
-    match command.as_deref() {
-        Some("list" | "ls") if args.next().is_none() => run_list(),
-        Some("init") if args.next().is_none() => run_init(),
-        Some("new") => run_new(&mut args),
-        Some("check" | "validate") => run_check(&mut args),
-        Some("index") => run_index(&mut args),
-        _ => {
-            eprintln!(
-                "Usage: adr <COMMAND>\n\nCommands:\n  init             Bootstrap docs/adr/ and the ADR template\n  list, ls         List ADRs from docs/adr/\n  new              Create a new ADR from a title\n  check, validate  Validate ADRs in docs/adr/\n  index            Generate or verify docs/adr/README.md"
-            );
-            ExitCode::from(2)
-        }
+    match cli.command.expect("parser guarantees a subcommand") {
+        Commands::Init => run_init(),
+        Commands::List => run_list(),
+        Commands::New { title_parts } => run_new(title_parts),
+        Commands::Check(args) => run_check(args),
+        Commands::Index(args) => run_index(args),
     }
 }
 
@@ -44,17 +41,21 @@ fn run_init() -> ExitCode {
     }
 }
 
-fn run_new(args: &mut impl Iterator<Item = String>) -> ExitCode {
-    let title = args.next();
-    if args.next().is_some() {
+fn run_new(title_parts: Vec<String>) -> ExitCode {
+    if title_parts.len() > 1 {
         eprintln!("Error: unexpected extra arguments");
         return ExitCode::from(1);
     }
 
-    let Some(title) = title.filter(|title| !title.is_empty()) else {
+    let Some(title) = title_parts.into_iter().next() else {
         eprintln!("Error: title is required");
         return ExitCode::from(1);
     };
+
+    if title.is_empty() {
+        eprintln!("Error: title is required");
+        return ExitCode::from(1);
+    }
 
     match create_new_adr(Path::new("."), &title) {
         Ok(path) => {
@@ -88,30 +89,15 @@ fn run_list() -> ExitCode {
     }
 }
 
-fn run_check(args: &mut impl Iterator<Item = String>) -> ExitCode {
-    let mut format = CheckOutputFormat::Human;
-
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--format" => {
-                let Some(value) = args.next() else {
-                    eprintln!("Error: --format requires a value");
-                    return ExitCode::from(2);
-                };
-                match value.as_str() {
-                    "json" => format = CheckOutputFormat::Json,
-                    _ => {
-                        eprintln!("Error: unsupported format '{value}'");
-                        return ExitCode::from(2);
-                    }
-                }
-            }
-            _ => {
-                eprintln!("Error: unexpected argument '{arg}'");
-                return ExitCode::from(2);
-            }
+fn run_check(args: CheckArgs) -> ExitCode {
+    let format = match args.format {
+        None => CheckOutputFormat::Human,
+        Some(value) if value == "json" => CheckOutputFormat::Json,
+        Some(value) => {
+            eprintln!("Error: unsupported format '{value}'");
+            return ExitCode::from(2);
         }
-    }
+    };
 
     match check_adrs(Path::new(".")) {
         Ok(result) => {
@@ -129,20 +115,8 @@ fn run_check(args: &mut impl Iterator<Item = String>) -> ExitCode {
     }
 }
 
-fn run_index(args: &mut impl Iterator<Item = String>) -> ExitCode {
-    let mut check_only = false;
-
-    for arg in args.by_ref() {
-        match arg.as_str() {
-            "--check" => check_only = true,
-            _ => {
-                eprintln!("Error: unexpected argument '{arg}'");
-                return ExitCode::from(2);
-            }
-        }
-    }
-
-    if check_only {
+fn run_index(args: IndexArgs) -> ExitCode {
+    if args.check {
         match check_adr_index(Path::new(".")) {
             Ok(IndexCheckResult::UpToDate) => {
                 println!("docs/adr/README.md is up to date.");
