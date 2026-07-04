@@ -86,3 +86,30 @@ fn invalid_index_flag_exits_with_error() {
     assert_eq!(output.status_code(), Some(2));
     output.assert_stderr(predicate::str::contains("unexpected argument '--foo'"));
 }
+
+#[test]
+fn list_rejects_unexpected_flags() {
+    let workspace = CliTestWorkspace::new();
+
+    let output = workspace.run(&["list", "--foo"]);
+    assert_eq!(output.status_code(), Some(2));
+    output.assert_stderr(predicate::str::contains("unexpected argument '--foo'"));
+}
+
+#[test]
+fn init_rejects_unexpected_positional_arguments() {
+    let workspace = CliTestWorkspace::new();
+
+    let output = workspace.run(&["init", "foo"]);
+    assert_eq!(output.status_code(), Some(2));
+    output.assert_stderr(predicate::str::contains("unexpected argument 'foo'"));
+}
+
+#[test]
+fn missing_subcommand_exits_with_usage() {
+    let workspace = CliTestWorkspace::new();
+
+    let output = workspace.run(&[]);
+    assert_eq!(output.status_code(), Some(2));
+    output.assert_stderr(predicate::str::contains("Usage: adr <COMMAND>"));
+}
