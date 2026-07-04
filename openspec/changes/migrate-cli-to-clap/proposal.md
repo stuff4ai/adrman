@@ -8,15 +8,17 @@ adrman currently parses CLI arguments manually in `adrman-cli`. That works for t
 - Preserve existing commands, aliases, flags, and command outcomes.
 - Preserve the current minimal usage message for missing or unknown top-level commands.
 - Report unexpected arguments on known commands with explicit `Error: unexpected argument '...'` messages instead of falling back to the top-level usage message.
+- Preserve `adr new` title-token compatibility, including titles that begin with `-`.
 - Keep comprehensive help and version output out of scope for this change.
 
 ## Capabilities
 
 ### New Capabilities
-- `cli-parser`: Typed CLI argument parsing, command dispatch, aliases, flags, and parser error handling for the `adr` binary.
+- `cli-command-surface`: Top-level `adr` subcommands, aliases, shared usage output, and argument rejection behavior.
 
 ### Modified Capabilities
-- None. Command behavior remains specified in existing per-command specs (`adr-list-command`, `adr-check-command`, etc.).
+- `adr-new-command`: Document single-token title shape and hyphen-prefixed title acceptance.
+- `adr-check-command`: Document `--format` flag validation errors.
 
 ## Impact
 
@@ -24,7 +26,8 @@ adrman currently parses CLI arguments manually in `adrman-cli`. That works for t
   - `adrman-cli` parser module, command dispatch, and parser integration tests.
   - `Cargo.toml` dependency on `clap`.
 - Documentation:
-  - New OpenSpec capability for CLI parser behavior.
+  - New OpenSpec capability for CLI command surface behavior.
+  - Updated per-command specs for `adr new` title tokens and `adr check --format` validation.
 - Non-goals:
   - Comprehensive `--help` output (#17).
   - `--version` output (#18).

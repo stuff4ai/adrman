@@ -24,7 +24,7 @@ pub enum Commands {
     #[command(visible_alias = "ls")]
     List,
     New {
-        #[arg(num_args = 1.., required = true)]
+        #[arg(required = true, num_args = 1.., allow_hyphen_values = true)]
         title_parts: Vec<String>,
     },
     #[command(visible_alias = "validate")]

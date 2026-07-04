@@ -10,6 +10,7 @@ adrman exposes a small set of subcommands (`init`, `list`, `new`, `check`, `inde
 - Preserve `adr check --format json` and `adr index --check`.
 - Preserve existing parser error messages and exit codes where tests already define them.
 - Reject unexpected arguments on known commands with explicit error messages.
+- Accept `adr new` title tokens that begin with `-` as titles, matching manual parsing behavior.
 - Disable clap built-in help and version flags until dedicated issues land.
 
 **Non-Goals:**
@@ -35,8 +36,16 @@ adrman exposes a small set of subcommands (`init`, `list`, `new`, `check`, `inde
    - Rationale: missing title and extra title tokens retain existing exit codes (`1`) and messages.
    - Alternative considered: rely entirely on clap positional validation. Rejected because `adr new` without a title must keep exit code `1`, not parser exit code `2`.
 
-5. Store unsupported `--format` values in command dispatch, not clap `ValueEnum`.
+5. Enable `allow_hyphen_values` for `adr new` title tokens.
+   - Rationale: manual parsing treated tokens such as `--help` and `-foo` as titles; clap otherwise interprets them as flags.
+   - Alternative considered: require `--` before hyphen-prefixed titles. Rejected because it changes existing user-visible behavior.
+
+6. Store unsupported `--format` values in command dispatch, not clap `ValueEnum`.
    - Rationale: preserves the existing `Error: unsupported format '...'` message and exit code `2`.
+
+7. Document product behavior in `cli-command-surface` rather than parser implementation details.
+   - Rationale: long-term OpenSpec requirements should describe user-visible CLI behavior, not the parsing library choice.
+   - Alternative considered: a `cli-parser` capability requiring `clap`. Rejected because implementation choices belong in design notes, not durable specs.
 
 ## Risks / Trade-offs
 
