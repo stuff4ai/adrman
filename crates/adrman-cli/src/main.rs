@@ -1,7 +1,7 @@
 use adrman_core::{
-    CheckOutputFormat, IndexCheckResult, IndexGenerateResult, ListAdrsResult, check_adr_index,
-    check_adrs, check_has_failures, create_new_adr, format_adrs_table, format_check_result,
-    generate_adr_index, list_adrs,
+    CheckOutputFormat, IndexCheckResult, IndexGenerateResult, InitAdrResult, ListAdrsResult,
+    check_adr_index, check_adrs, check_has_failures, create_new_adr, format_adrs_table,
+    format_check_result, generate_adr_index, init_adr_workspace, list_adrs,
 };
 use std::env;
 use std::path::Path;
@@ -14,14 +14,32 @@ fn main() -> ExitCode {
 
     match command.as_deref() {
         Some("list" | "ls") if args.next().is_none() => run_list(),
+        Some("init") if args.next().is_none() => run_init(),
         Some("new") => run_new(&mut args),
         Some("check" | "validate") => run_check(&mut args),
         Some("index") => run_index(&mut args),
         _ => {
             eprintln!(
-                "Usage: adr <COMMAND>\n\nCommands:\n  list, ls         List ADRs from docs/adr/\n  new              Create a new ADR from a title\n  check, validate  Validate ADRs in docs/adr/\n  index            Generate or verify docs/adr/README.md"
+                "Usage: adr <COMMAND>\n\nCommands:\n  init             Bootstrap docs/adr/ and the ADR template\n  list, ls         List ADRs from docs/adr/\n  new              Create a new ADR from a title\n  check, validate  Validate ADRs in docs/adr/\n  index            Generate or verify docs/adr/README.md"
             );
             ExitCode::from(2)
+        }
+    }
+}
+
+fn run_init() -> ExitCode {
+    match init_adr_workspace(Path::new(".")) {
+        Ok(InitAdrResult::Created(_)) => {
+            println!("Created docs/adr/.adr-template.md.");
+            ExitCode::SUCCESS
+        }
+        Ok(InitAdrResult::AlreadyExists(_)) => {
+            println!("docs/adr/.adr-template.md already exists.");
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("Error: failed to initialize ADR workspace: {error}");
+            ExitCode::from(1)
         }
     }
 }

@@ -8,6 +8,7 @@ const ADR_DIR: &str = "docs/adr/";
 const INDEX_REL_PATH: &str = "docs/adr/README.md";
 const TEMPLATE_REL_PATH: &str = "docs/adr/.adr-template.md";
 const TEMPLATE_FILE_NAME: &str = ".adr-template.md";
+pub const DEFAULT_ADR_TEMPLATE: &str = "---\nfilename: \"XXXX-{slug}.md\"\n---\n\n# Title\n\n## Status\n\n## Context\n\n## Decision\n\n## Consequences";
 const TITLE_PLACEHOLDER_LINE: &str = "# Title";
 const STATUS_HEADING: &str = "## Status";
 const INITIAL_STATUS: &str = "Proposed";
@@ -70,6 +71,12 @@ pub enum IndexCheckResult {
     MissingDirectory(PathBuf),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InitAdrResult {
+    Created(PathBuf),
+    AlreadyExists(PathBuf),
+}
+
 #[derive(Debug)]
 pub enum NewAdrError {
     MissingTemplate,
@@ -92,6 +99,27 @@ impl std::fmt::Display for NewAdrError {
 }
 
 impl std::error::Error for NewAdrError {}
+
+pub fn init_adr_workspace(repo_root: &Path) -> io::Result<InitAdrResult> {
+    let adr_path = repo_root.join(ADR_DIR.trim_end_matches('/'));
+    fs::create_dir_all(&adr_path)?;
+
+    let template_path = adr_path.join(TEMPLATE_FILE_NAME);
+    match OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&template_path)
+    {
+        Ok(mut file) => {
+            file.write_all(DEFAULT_ADR_TEMPLATE.as_bytes())?;
+            Ok(InitAdrResult::Created(template_path))
+        }
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+            Ok(InitAdrResult::AlreadyExists(template_path))
+        }
+        Err(error) => Err(error),
+    }
+}
 
 pub fn create_new_adr(repo_root: &Path, title: &str) -> Result<PathBuf, NewAdrError> {
     let template = read_template(repo_root)?;
@@ -184,29 +212,41 @@ fn populate_template(template: &str, title: &str) -> String {
     let mut title_replaced = false;
 
     for (index, line) in template.lines().enumerate() {
-        if index > 0 {
-            output.push('\n');
-        }
-
-        if !title_replaced && index == 0 && line == TITLE_PLACEHOLDER_LINE {
+        if !title_replaced && line == TITLE_PLACEHOLDER_LINE {
+            if index > 0 {
+                output.push('\n');
+            }
             output.push_str(&format!("# {title}"));
             title_replaced = true;
             continue;
         }
 
         if line.trim() == STATUS_HEADING {
+            if index > 0 {
+                output.push('\n');
+            }
             in_status_section = true;
             output.push_str(line);
+            output.push_str("\n\n");
             continue;
         }
 
-        if in_status_section
-            && !status_replaced
-            && !line.trim().is_empty()
-            && !line.trim().starts_with('#')
-        {
+        if in_status_section && !status_replaced {
+            if line.trim().is_empty() {
+                continue;
+            }
+            if line.trim().starts_with('#') {
+                output.push_str(INITIAL_STATUS);
+                status_replaced = true;
+                in_status_section = false;
+                output.push('\n');
+                output.push('\n');
+                output.push_str(line);
+                continue;
+            }
             output.push_str(INITIAL_STATUS);
             status_replaced = true;
+            in_status_section = false;
             continue;
         }
 
@@ -214,7 +254,15 @@ fn populate_template(template: &str, title: &str) -> String {
             in_status_section = false;
         }
 
+        if index > 0 {
+            output.push('\n');
+        }
         output.push_str(line);
+    }
+
+    if in_status_section && !status_replaced {
+        output.push('\n');
+        output.push_str(INITIAL_STATUS);
     }
 
     if template.ends_with('\n') {
@@ -940,6 +988,14 @@ mod tests {
     }
 
     #[test]
+    fn populate_template_replaces_title_after_front_matter_and_fills_empty_status() {
+        let content = populate_template(DEFAULT_ADR_TEMPLATE, "Use SQLite");
+        assert!(content.contains("# Use SQLite\n"));
+        assert!(!content.contains("# Title\n"));
+        assert!(content.contains("## Status\n\nProposed\n\n## Context"));
+    }
+
+    #[test]
     fn create_new_adr_writes_expected_file() {
         let temp_dir = unique_temp_dir("adrman_core_create_new");
         write_file(&temp_dir.join("docs/adr/.adr-template.md"), TEMPLATE);
@@ -1104,5 +1160,51 @@ mod tests {
             check_result,
             IndexCheckResult::MissingDirectory(_)
         ));
+    }
+
+    #[test]
+    fn init_adr_workspace_creates_template_in_missing_directory() {
+        let temp_dir = unique_temp_dir("adrman_core_init_create");
+
+        let result = init_adr_workspace(&temp_dir).expect("init should succeed");
+        assert_eq!(
+            result,
+            InitAdrResult::Created(temp_dir.join("docs/adr/.adr-template.md"))
+        );
+        assert!(temp_dir.join("docs/adr").is_dir());
+
+        let content = fs::read_to_string(temp_dir.join("docs/adr/.adr-template.md"))
+            .expect("template should be readable");
+        assert_eq!(content, DEFAULT_ADR_TEMPLATE);
+    }
+
+    #[test]
+    fn init_adr_workspace_creates_missing_parent_directories() {
+        let temp_dir = unique_temp_dir("adrman_core_init_parents");
+        fs::create_dir_all(temp_dir.join("nested/project")).expect("nested dir should exist");
+        let repo_root = temp_dir.join("nested/project");
+
+        let result = init_adr_workspace(&repo_root).expect("init should succeed");
+        assert!(matches!(result, InitAdrResult::Created(_)));
+        assert!(repo_root.join("docs/adr/.adr-template.md").is_file());
+    }
+
+    #[test]
+    fn init_adr_workspace_does_not_overwrite_existing_template() {
+        let temp_dir = unique_temp_dir("adrman_core_init_existing");
+        write_file(
+            &temp_dir.join("docs/adr/.adr-template.md"),
+            "existing template content",
+        );
+
+        let result = init_adr_workspace(&temp_dir).expect("init should succeed");
+        assert_eq!(
+            result,
+            InitAdrResult::AlreadyExists(temp_dir.join("docs/adr/.adr-template.md"))
+        );
+
+        let content = fs::read_to_string(temp_dir.join("docs/adr/.adr-template.md"))
+            .expect("template should remain readable");
+        assert_eq!(content, "existing template content");
     }
 }

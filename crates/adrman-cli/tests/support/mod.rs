@@ -27,6 +27,7 @@ impl CliTestWorkspace {
             .expect("test file should be written");
     }
 
+    #[allow(dead_code)]
     pub fn write_adr(&self, file_name: &str, contents: &str) {
         self.write_file(&format!("docs/adr/{file_name}"), contents);
     }
@@ -44,8 +45,12 @@ impl CliTestWorkspace {
     }
 
     pub fn run(&self, args: &[&str]) -> CliRun {
+        self.run_in_dir(self.path(), args)
+    }
+
+    pub fn run_in_dir(&self, working_dir: &Path, args: &[&str]) -> CliRun {
         let mut command = Command::cargo_bin("adr").expect("compiled adr binary should exist");
-        command.current_dir(self.path());
+        command.current_dir(working_dir);
         command.args(args);
         let output = command.output().expect("CLI command should execute");
         CliRun::new(output)

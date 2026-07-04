@@ -57,6 +57,22 @@ cargo run -p adrman-cli --bin adr -- list
 
 ## Commands
 
+### `adr init`
+
+- Bootstraps an ADR workspace in the current repository.
+- Creates `docs/adr/` when it does not exist.
+- Creates `docs/adr/.adr-template.md` when it does not exist.
+- Does not overwrite an existing `docs/adr/.adr-template.md`.
+- Prints a success message when the template is created.
+- Prints an informative message when the template already exists.
+- Exits with status code `0` for both created and already-existing outcomes.
+
+Example:
+
+```bash
+adr init
+```
+
 ### `adr list` / `adr ls`
 
 - Reads ADR files from `docs/adr/` only.
