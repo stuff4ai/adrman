@@ -14,7 +14,7 @@ adrman currently parses CLI arguments manually in `adrman-cli`. That works for t
 ## Capabilities
 
 ### New Capabilities
-- `cli-command-surface`: Top-level `adr` subcommands, aliases, shared usage output, and argument rejection behavior.
+- `cli-root`: Root `adr` invocation shape, top-level subcommands, aliases, shared usage output, and help/version deferral.
 
 ### Modified Capabilities
 - `adr-new-command`: Document single-token title shape and hyphen-prefixed title acceptance.
@@ -26,7 +26,7 @@ adrman currently parses CLI arguments manually in `adrman-cli`. That works for t
   - `adrman-cli` parser module, command dispatch, and parser integration tests.
   - `Cargo.toml` dependency on `clap`.
 - Documentation:
-  - New OpenSpec capability for CLI command surface behavior.
+  - New OpenSpec capability for root-level CLI behavior.
   - Updated per-command specs for `adr new` title tokens and `adr check --format` validation.
 - Non-goals:
   - Comprehensive `--help` output (#17).

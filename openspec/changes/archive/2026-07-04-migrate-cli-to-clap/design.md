@@ -43,7 +43,7 @@ adrman exposes a small set of subcommands (`init`, `list`, `new`, `check`, `inde
 6. Store unsupported `--format` values in command dispatch, not clap `ValueEnum`.
    - Rationale: preserves the existing `Error: unsupported format '...'` message and exit code `2`.
 
-7. Document product behavior in `cli-command-surface` rather than parser implementation details.
+7. Document root-level product behavior in `cli-root` rather than parser implementation details.
    - Rationale: long-term OpenSpec requirements should describe user-visible CLI behavior, not the parsing library choice.
    - Alternative considered: a `cli-parser` capability requiring `clap`. Rejected because implementation choices belong in design notes, not durable specs.
 

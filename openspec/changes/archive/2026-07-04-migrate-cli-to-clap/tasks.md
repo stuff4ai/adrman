@@ -1,7 +1,7 @@
 ## 1. OpenSpec
 
-- [x] 1.1 Add `cli-command-surface` capability proposal, design, and delta spec.
-- [x] 1.2 Sync `cli-command-surface` and per-command deltas into long-term specs.
+- [x] 1.1 Add `cli-root` capability proposal, design, and delta spec.
+- [x] 1.2 Sync `cli-root` and per-command deltas into long-term specs.
 - [x] 1.3 Keep long-term requirements behavior-focused and implementation-agnostic.
 
 ## 2. Parser infrastructure
