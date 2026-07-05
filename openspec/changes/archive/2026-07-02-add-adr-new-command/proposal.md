@@ -36,7 +36,7 @@ adrman can list existing ADRs but cannot create new decision records from the CL
 ## Capabilities
 
 ### New Capabilities
-- `adr-new-command`: Create a new ADR file from the project template with deterministic ID assignment, slugged filename, and success output.
+- `cli-new`: Create a new ADR file from the project template with deterministic ID assignment, slugged filename, and success output.
 
 ### Modified Capabilities
 - None.

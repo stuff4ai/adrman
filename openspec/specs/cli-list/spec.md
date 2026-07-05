@@ -1,4 +1,4 @@
-# adr-list-command Specification
+# cli-list Specification
 
 ## Purpose
 Provide a CLI workflow to list ADR files from `docs/adr/`, including command aliases, file discovery, metadata extraction, ordering, output format, and missing-directory handling.

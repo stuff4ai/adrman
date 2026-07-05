@@ -22,3 +22,7 @@ rules:
     - Keep tasks small and reviewable.
     - Include documentation updates when behavior or workflow changes.
     - Include tests for user-visible behavior.
+  specs:
+    - Keep active specs and related OpenSpec change references consistent when renaming or modifying capabilities.
+    - Use cli-root for root executable behavior.
+    - Use cli-{command} for CLI subcommand capabilities.

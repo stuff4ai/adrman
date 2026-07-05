@@ -1,4 +1,4 @@
-# adr-init-command Specification
+# cli-init Specification
 
 ## Purpose
 Provide a CLI workflow to bootstrap an ADR workspace by creating `docs/adr/` and the default `docs/adr/.adr-template.md` for new repositories.

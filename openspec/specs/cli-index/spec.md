@@ -1,4 +1,4 @@
-# adr-index-command Specification
+# cli-index Specification
 
 ## Purpose
 Provide a CLI workflow to generate and verify a Markdown ADR index at `docs/adr/README.md`, including discovery, metadata extraction, deterministic table output, and CI check mode.

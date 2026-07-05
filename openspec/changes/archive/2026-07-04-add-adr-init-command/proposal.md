@@ -21,7 +21,7 @@ adrman can create ADRs with `adr new`, but only when `docs/adr/` and `docs/adr/.
 ## Capabilities
 
 ### New Capabilities
-- `adr-init-command`: Bootstrap `docs/adr/` and the default `.adr-template.md` for new ADR workspaces.
+- `cli-init`: Bootstrap `docs/adr/` and the default `.adr-template.md` for new ADR workspaces.
 
 ### Modified Capabilities
 - None.

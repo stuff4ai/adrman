@@ -18,7 +18,7 @@ adrman can list ADRs in the terminal but does not maintain a browsable index in 
 ## Capabilities
 
 ### New Capabilities
-- `adr-index-command`: Generate and verify a Markdown ADR index at `docs/adr/README.md`.
+- `cli-index`: Generate and verify a Markdown ADR index at `docs/adr/README.md`.
 
 ### Modified Capabilities
 - None.
