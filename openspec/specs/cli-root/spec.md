@@ -58,6 +58,22 @@ The usage message MUST list the supported commands:
 - **THEN** the CLI prints the usage message to standard error
 - **AND** exits with status code `2`
 
+### Requirement: CLI exit-code policy
+The CLI MUST use exit codes to distinguish successful execution, command outcome failures, and CLI usage errors:
+- `0` for success, including idempotent no-op outcomes where the requested state is already true
+- `1` for valid invocations where the requested operation failed or check did not pass
+- `2` for invocations that do not match supported CLI syntax
+
+Command handlers MUST NOT return exit code `1` for pure CLI usage errors.
+
+#### Scenario: User invokes a command with invalid syntax
+- **WHEN** a user runs `adr` with an unknown flag, missing required argument, or unsupported flag value
+- **THEN** the CLI exits with status code `2`
+
+#### Scenario: User invokes a valid command that fails its outcome check
+- **WHEN** a user runs `adr check` and validation finds issues
+- **THEN** the CLI exits with status code `1`
+
 ### Requirement: Deferred help and version output
 The CLI MUST NOT expose comprehensive `--help` or `--version` output in this change.
 

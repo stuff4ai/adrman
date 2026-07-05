@@ -1,18 +1,20 @@
 mod cli;
+mod exit_code;
 
 use adrman_core::{
-    CheckOutputFormat, IndexCheckResult, IndexGenerateResult, InitAdrResult, ListAdrsResult,
-    check_adr_index, check_adrs, check_has_failures, create_new_adr, format_adrs_table,
-    format_check_result, generate_adr_index, init_adr_workspace, list_adrs,
+    IndexCheckResult, IndexGenerateResult, InitAdrResult, ListAdrsResult, check_adr_index,
+    check_adrs, check_has_failures, create_new_adr, format_adrs_table, format_check_result,
+    generate_adr_index, init_adr_workspace, list_adrs,
 };
 use cli::{CheckArgs, Commands, IndexArgs};
+use exit_code::{COMMAND_FAILURE, CliExitCode, SUCCESS, USAGE_ERROR};
 use std::path::Path;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let cli = match cli::parse() {
         Ok(cli) => cli,
-        Err(code) => return code,
+        Err(code) => return code.into(),
     };
 
     match cli.command.expect("parser guarantees a subcommand") {
@@ -22,136 +24,130 @@ fn main() -> ExitCode {
         Commands::Check(args) => run_check(args),
         Commands::Index(args) => run_index(args),
     }
+    .into()
 }
 
-fn run_init() -> ExitCode {
+fn run_init() -> CliExitCode {
     match init_adr_workspace(Path::new(".")) {
         Ok(InitAdrResult::Created(_)) => {
             println!("Created docs/adr/.adr-template.md.");
-            ExitCode::SUCCESS
+            SUCCESS
         }
         Ok(InitAdrResult::AlreadyExists(_)) => {
             println!("docs/adr/.adr-template.md already exists.");
-            ExitCode::SUCCESS
+            SUCCESS
         }
         Err(error) => {
             eprintln!("Error: failed to initialize ADR workspace: {error}");
-            ExitCode::from(1)
+            COMMAND_FAILURE
         }
     }
 }
 
-fn run_new(title_parts: Vec<String>) -> ExitCode {
+fn run_new(title_parts: Vec<String>) -> CliExitCode {
     if title_parts.len() > 1 {
         eprintln!("Error: unexpected extra arguments");
-        return ExitCode::from(1);
+        return USAGE_ERROR;
     }
 
     let Some(title) = title_parts.into_iter().next() else {
         eprintln!("Error: title is required");
-        return ExitCode::from(1);
+        return USAGE_ERROR;
     };
 
     if title.is_empty() {
         eprintln!("Error: title is required");
-        return ExitCode::from(1);
+        return COMMAND_FAILURE;
     }
 
     match create_new_adr(Path::new("."), &title) {
         Ok(path) => {
             println!("{}", path.display());
-            ExitCode::SUCCESS
+            SUCCESS
         }
         Err(error) => {
             eprintln!("Error: {error}");
-            ExitCode::from(1)
+            COMMAND_FAILURE
         }
     }
 }
 
-fn run_list() -> ExitCode {
+fn run_list() -> CliExitCode {
     match list_adrs(Path::new(".")) {
         Ok(ListAdrsResult::Entries(entries)) => {
             print!("{}", format_adrs_table(&entries));
-            ExitCode::SUCCESS
+            SUCCESS
         }
         Ok(ListAdrsResult::MissingDirectory(path)) => {
             eprintln!(
                 "Warning: ADR directory '{}' does not exist.",
                 path.display()
             );
-            ExitCode::SUCCESS
+            SUCCESS
         }
         Err(error) => {
             eprintln!("Error: failed to list ADRs: {error}");
-            ExitCode::from(1)
+            COMMAND_FAILURE
         }
     }
 }
 
-fn run_check(args: CheckArgs) -> ExitCode {
-    let format = match args.format {
-        None => CheckOutputFormat::Human,
-        Some(value) if value == "json" => CheckOutputFormat::Json,
-        Some(value) => {
-            eprintln!("Error: unsupported format '{value}'");
-            return ExitCode::from(2);
-        }
-    };
+fn run_check(args: CheckArgs) -> CliExitCode {
+    let format = args.output_format();
 
     match check_adrs(Path::new(".")) {
         Ok(result) => {
             print!("{}", format_check_result(&result, format));
             if check_has_failures(&result) {
-                ExitCode::from(1)
+                COMMAND_FAILURE
             } else {
-                ExitCode::SUCCESS
+                SUCCESS
             }
         }
         Err(error) => {
             eprintln!("Error: failed to check ADRs: {error}");
-            ExitCode::from(1)
+            COMMAND_FAILURE
         }
     }
 }
 
-fn run_index(args: IndexArgs) -> ExitCode {
+fn run_index(args: IndexArgs) -> CliExitCode {
     if args.check {
         match check_adr_index(Path::new(".")) {
             Ok(IndexCheckResult::UpToDate) => {
                 println!("docs/adr/README.md is up to date.");
-                ExitCode::SUCCESS
+                SUCCESS
             }
             Ok(IndexCheckResult::Stale) => {
                 eprintln!("Error: docs/adr/README.md is stale. Run `adr index` to update it.");
-                ExitCode::from(1)
+                COMMAND_FAILURE
             }
             Ok(IndexCheckResult::MissingIndex) => {
                 eprintln!("Error: docs/adr/README.md is missing. Run `adr index` to create it.");
-                ExitCode::from(1)
+                COMMAND_FAILURE
             }
             Ok(IndexCheckResult::MissingDirectory(path)) => {
                 eprintln!("Error: ADR directory '{}' does not exist.", path.display());
-                ExitCode::from(1)
+                COMMAND_FAILURE
             }
             Err(error) => {
                 eprintln!("Error: failed to check ADR index: {error}");
-                ExitCode::from(1)
+                COMMAND_FAILURE
             }
         }
     } else {
         match generate_adr_index(Path::new(".")) {
             Ok(IndexGenerateResult::Written(path)) => {
                 println!("{}", path.display());
-                ExitCode::SUCCESS
+                SUCCESS
             }
             Ok(IndexGenerateResult::MissingDirectory(path)) => {
                 eprintln!("Error: ADR directory '{}' does not exist.", path.display());
-                ExitCode::from(1)
+                COMMAND_FAILURE
             }
             Err(error) => {
                 eprintln!("Error: failed to generate ADR index: {error}");
-                ExitCode::from(1)
+                COMMAND_FAILURE
             }
         }
     }

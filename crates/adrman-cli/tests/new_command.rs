@@ -10,7 +10,7 @@ fn new_command_requires_title() {
     workspace.write_default_adr_template();
 
     let output = workspace.run(&["new"]);
-    assert_eq!(output.status_code(), Some(1));
+    assert_eq!(output.status_code(), Some(2));
     output.assert_stderr(predicate::str::contains("title is required"));
 }
 
@@ -89,7 +89,7 @@ fn new_command_rejects_extra_arguments() {
     workspace.write_default_adr_template();
 
     let output = workspace.run(&["new", "Use", "SQLite"]);
-    assert_eq!(output.status_code(), Some(1));
+    assert_eq!(output.status_code(), Some(2));
     output.assert_stderr(predicate::str::contains("unexpected extra arguments"));
 
     let created = workspace.path().join("docs/adr/0001-use.md");
