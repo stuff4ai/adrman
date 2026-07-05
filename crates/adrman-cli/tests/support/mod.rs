@@ -61,6 +61,7 @@ pub struct CliRun {
     output: Output,
 }
 
+#[allow(dead_code)]
 impl CliRun {
     fn new(output: Output) -> Self {
         Self { output }

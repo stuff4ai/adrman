@@ -40,6 +40,12 @@ pub struct CheckArgs {
     pub format: Option<CheckOutputFormat>,
 }
 
+impl CheckArgs {
+    pub fn output_format(&self) -> CheckOutputFormat {
+        self.format.unwrap_or(CheckOutputFormat::Human)
+    }
+}
+
 #[derive(clap::Args, Default)]
 pub struct IndexArgs {
     #[arg(long)]

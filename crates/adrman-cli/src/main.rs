@@ -2,9 +2,9 @@ mod cli;
 mod exit_code;
 
 use adrman_core::{
-    CheckOutputFormat, IndexCheckResult, IndexGenerateResult, InitAdrResult, ListAdrsResult,
-    check_adr_index, check_adrs, check_has_failures, create_new_adr, format_adrs_table,
-    format_check_result, generate_adr_index, init_adr_workspace, list_adrs,
+    IndexCheckResult, IndexGenerateResult, InitAdrResult, ListAdrsResult, check_adr_index,
+    check_adrs, check_has_failures, create_new_adr, format_adrs_table, format_check_result,
+    generate_adr_index, init_adr_workspace, list_adrs,
 };
 use cli::{CheckArgs, Commands, IndexArgs};
 use exit_code::{COMMAND_FAILURE, CliExitCode, SUCCESS, USAGE_ERROR};
@@ -93,7 +93,7 @@ fn run_list() -> CliExitCode {
 }
 
 fn run_check(args: CheckArgs) -> CliExitCode {
-    let format = args.format.unwrap_or(CheckOutputFormat::Human);
+    let format = args.output_format();
 
     match check_adrs(Path::new(".")) {
         Ok(result) => {
