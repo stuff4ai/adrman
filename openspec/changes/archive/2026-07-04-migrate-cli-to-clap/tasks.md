@@ -1,8 +1,9 @@
 ## 1. OpenSpec
 
 - [x] 1.1 Add `cli-root` capability proposal, design, and delta spec.
-- [x] 1.2 Sync `cli-root` and per-command deltas into long-term specs.
-- [x] 1.3 Keep long-term requirements behavior-focused and implementation-agnostic.
+- [x] 1.2 Merge `cli-command-name` into `cli-root` and record the move in archived deltas.
+- [x] 1.3 Sync `cli-root` and per-command deltas into long-term specs.
+- [x] 1.4 Keep long-term requirements behavior-focused and implementation-agnostic.
 
 ## 2. Parser infrastructure
 

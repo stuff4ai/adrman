@@ -1,5 +1,12 @@
 ## ADDED Requirements
 
+### Requirement: CLI binary naming
+The distributed CLI binary MUST be named `adr`.
+
+#### Scenario: User runs the CLI binary
+- **WHEN** the CLI is built from the Cargo workspace
+- **THEN** the binary command name is `adr`
+
 ### Requirement: Root invocation shape
 The CLI SHALL be invoked as `adr <command> [command arguments]`.
 

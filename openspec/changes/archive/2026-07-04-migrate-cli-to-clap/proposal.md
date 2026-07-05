@@ -14,9 +14,10 @@ adrman currently parses CLI arguments manually in `adrman-cli`. That works for t
 ## Capabilities
 
 ### New Capabilities
-- `cli-root`: Root `adr` invocation shape, top-level subcommands, aliases, shared usage output, and help/version deferral.
+- `cli-root`: Root `adr` binary name, invocation shape, top-level subcommands, aliases, shared usage output, and help/version deferral.
 
 ### Modified Capabilities
+- `cli-command-name`: Merge the existing binary naming requirement into `cli-root`, because the `adr` binary name belongs to the root executable contract.
 - `adr-new-command`: Document single-token title shape and hyphen-prefixed title acceptance.
 - `adr-check-command`: Document `--format` flag validation errors.
 
@@ -26,7 +27,7 @@ adrman currently parses CLI arguments manually in `adrman-cli`. That works for t
   - `adrman-cli` parser module, command dispatch, and parser integration tests.
   - `Cargo.toml` dependency on `clap`.
 - Documentation:
-  - New OpenSpec capability for root-level CLI behavior.
+  - New OpenSpec capability for root-level CLI behavior, including the merged `cli-command-name` binary naming requirement.
   - Updated per-command specs for `adr new` title tokens and `adr check --format` validation.
 - Non-goals:
   - Comprehensive `--help` output (#17).

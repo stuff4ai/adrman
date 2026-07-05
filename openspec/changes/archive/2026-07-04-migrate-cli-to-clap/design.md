@@ -47,6 +47,10 @@ adrman exposes a small set of subcommands (`init`, `list`, `new`, `check`, `inde
    - Rationale: long-term OpenSpec requirements should describe user-visible CLI behavior, not the parsing library choice.
    - Alternative considered: a `cli-parser` capability requiring `clap`. Rejected because implementation choices belong in design notes, not durable specs.
 
+8. Merge `cli-command-name` into `cli-root`.
+   - Rationale: the `adr` binary name is part of the root executable contract, not a separate long-term capability.
+   - Alternative considered: keep `cli-command-name` as a standalone spec. Rejected because root invocation and binary naming belong together.
+
 ## Risks / Trade-offs
 
 - [Risk] Future clap upgrades change default error text. -> Mitigation: parser integration tests lock in required messages and exit codes.
