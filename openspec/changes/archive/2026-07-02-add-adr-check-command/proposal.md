@@ -17,7 +17,7 @@ adrman can list and create ADRs but cannot validate decision records against pro
 ## Capabilities
 
 ### New Capabilities
-- `adr-check-command`: Validate ADR files in `docs/adr/` for filename, ID, section, and status rules with human and JSON output.
+- `cli-check`: Validate ADR files in `docs/adr/` for filename, ID, section, and status rules with human and JSON output.
 
 ### Modified Capabilities
 - None.

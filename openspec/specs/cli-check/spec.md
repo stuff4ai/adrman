@@ -1,4 +1,4 @@
-# adr-check-command Specification
+# cli-check Specification
 
 ## Purpose
 Provide a CLI workflow to validate ADR files in `docs/adr/` for filename, ID, section, and status rules with human-readable and JSON output for humans, CI, and agents.

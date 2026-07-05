@@ -30,7 +30,7 @@ adrman currently cannot show a concise index of existing ADR files, which makes 
 ## Capabilities
 
 ### New Capabilities
-- `adr-list-command`: List ADR entries from `docs/adr/` with deterministic parsing and tabular output.
+- `cli-list`: List ADR entries from `docs/adr/` with deterministic parsing and tabular output.
 
 ### Modified Capabilities
 - None.

@@ -1,4 +1,4 @@
-# adr-new-command Specification
+# cli-new Specification
 
 ## Purpose
 Provide a CLI workflow to create new ADR files in `docs/adr/` from a title, using the project template, deterministic ID assignment, and slugged filenames.

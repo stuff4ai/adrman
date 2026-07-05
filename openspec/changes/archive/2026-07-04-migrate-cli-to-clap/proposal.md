@@ -18,8 +18,8 @@ adrman currently parses CLI arguments manually in `adrman-cli`. That works for t
 
 ### Modified Capabilities
 - `cli-command-name`: Merge the existing binary naming requirement into `cli-root`, because the `adr` binary name belongs to the root executable contract.
-- `adr-new-command`: Document single-token title shape and hyphen-prefixed title acceptance.
-- `adr-check-command`: Document `--format` flag validation errors.
+- `cli-new`: Document single-token title shape and hyphen-prefixed title acceptance.
+- `cli-check`: Document `--format` flag validation errors.
 
 ## Impact
 
