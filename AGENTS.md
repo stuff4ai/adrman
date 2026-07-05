@@ -52,6 +52,8 @@ Use GitHub Flow:
 
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages.
 
+Sign off every commit with `git commit -s` so it includes a `Signed-off-by:` trailer.
+
 ## Rust commands
 
 Use [Cargo](https://doc.rust-lang.org/cargo/) commands for Rust development.
