@@ -57,6 +57,16 @@ cargo run -p adrman-cli --bin adr -- list
 
 ## Commands
 
+### Exit codes
+
+adrman uses a small exit-code policy so scripts, CI, and agents can interpret results reliably:
+
+| Code | Meaning | Examples |
+|------|---------|----------|
+| `0` | Success — command invoked correctly and completed successfully | `adr init`, `adr list` when `docs/adr/` is missing, `adr check` with valid ADRs, `adr index --check` with a fresh index |
+| `1` | Command outcome failure — valid invocation, but the operation failed or check did not pass | invalid ADRs, stale or missing index, missing template, duplicate ADR IDs, filesystem errors |
+| `2` | CLI usage error — command was not invoked according to supported syntax | no subcommand, unknown command, invalid flag, missing required argument, unsupported flag value, unexpected extra argument |
+
 ### `adr init`
 
 - Bootstraps an ADR workspace in the current repository.

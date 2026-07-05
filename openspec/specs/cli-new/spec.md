@@ -14,7 +14,7 @@ The CLI SHALL provide an `adr new` command that creates a new ADR file from a re
 #### Scenario: User omits the title argument
 - **WHEN** a user runs `adr new` without a title argument
 - **THEN** the CLI reports that the title is required
-- **AND** exits with a non-zero status code
+- **AND** exits with status code `2`
 
 ### Requirement: ADR new title argument shape
 The `adr new` command SHALL accept exactly one title token.
@@ -31,7 +31,7 @@ Additional title tokens MUST be rejected.
 #### Scenario: Extra title tokens are rejected
 - **WHEN** a user runs `adr new Use SQLite`
 - **THEN** the CLI prints `Error: unexpected extra arguments` to standard error
-- **AND** exits with status code `1`
+- **AND** exits with status code `2`
 - **AND** does not create a new ADR file
 
 ### Requirement: ADR workspace prerequisite
