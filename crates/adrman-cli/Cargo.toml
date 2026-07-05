@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 adrman-core = { path = "../adrman-core" }
+clap = { version = "4.5.60", features = ["derive"] }
 
 [dev-dependencies]
 adrman-core = { path = "../adrman-core" }

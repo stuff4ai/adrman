@@ -119,3 +119,27 @@ fn new_command_normalizes_slugged_filename() {
     output.assert_success();
     output.assert_stdout(predicate::str::contains("docs/adr/0005-api-design-v2.md"));
 }
+
+#[test]
+fn new_command_accepts_title_token_beginning_with_hyphen() {
+    let workspace = CliTestWorkspace::new();
+    workspace.write_default_adr_template();
+
+    let output = workspace.run(&["new", "--help"]);
+    output.assert_success();
+    output.assert_stdout(predicate::str::contains("docs/adr/0001-help.md"));
+
+    let created = workspace.path().join("docs/adr/0001-help.md");
+    let content = fs::read_to_string(created).expect("created adr should be readable");
+    assert!(content.starts_with("# --help\n\n## Status\n\nProposed\n"));
+}
+
+#[test]
+fn new_command_accepts_title_token_beginning_with_single_hyphen_prefix() {
+    let workspace = CliTestWorkspace::new();
+    workspace.write_default_adr_template();
+
+    let output = workspace.run(&["new", "-foo"]);
+    output.assert_success();
+    output.assert_stdout(predicate::str::contains("docs/adr/0001-foo.md"));
+}

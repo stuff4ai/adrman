@@ -124,6 +124,19 @@ The JSON output MUST include:
 - **AND** a non-empty `issues` array
 - **AND** exits with a non-zero status code
 
+### Requirement: Check format flag validation
+The `adr check --format` flag SHALL accept only `json` as a value.
+
+#### Scenario: Missing format value is rejected
+- **WHEN** a user runs `adr check --format` without a value
+- **THEN** the CLI prints `Error: --format requires a value` to standard error
+- **AND** exits with status code `2`
+
+#### Scenario: Unsupported format value is rejected
+- **WHEN** a user runs `adr check --format xml`
+- **THEN** the CLI prints `Error: unsupported format 'xml'` to standard error
+- **AND** exits with status code `2`
+
 ### Requirement: Missing ADR directory handling
 If `docs/adr/` does not exist, the command MUST report the missing directory and exit with a non-zero status code.
 
