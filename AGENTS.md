@@ -52,6 +52,8 @@ Use GitHub Flow:
 
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages.
 
+Name branches as `<type>/<kebab-case-topic>`.
+
 Sign off every commit with `git commit -s` so it includes a `Signed-off-by:` trailer.
 
 ## Rust commands
