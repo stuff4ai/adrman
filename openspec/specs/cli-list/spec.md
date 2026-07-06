@@ -8,11 +8,11 @@ The CLI SHALL provide `adr list` and `adr ls` commands, and both commands MUST e
 
 #### Scenario: User invokes the primary list command
 - **WHEN** a user runs `adr list`
-- **THEN** the CLI executes the ADR listing workflow and prints ADR table output
+- **THEN** the CLI executes the ADR listing workflow and prints ADR table output to standard output
 
 #### Scenario: User invokes the alias list command
 - **WHEN** a user runs `adr ls`
-- **THEN** the CLI executes the same ADR listing workflow and prints ADR table output with identical semantics
+- **THEN** the CLI executes the same ADR listing workflow and prints ADR table output with identical semantics to standard output
 
 ### Requirement: ADR file discovery scope
 The ADR listing workflow SHALL read candidates only from the `docs/adr/` directory and MUST include only files whose base filename matches `^[0-9]+[-_ ].*\.md$`.
@@ -47,11 +47,11 @@ Missing `Status` or missing `Title` MUST be rendered as `Unknown`.
 - **THEN** the output row `Status` is `Unknown`
 
 ### Requirement: Missing ADR directory handling
-If `docs/adr/` does not exist, the command MUST print a warning and exit successfully.
+If `docs/adr/` does not exist, the command MUST print a warning to standard error and exit successfully.
 
 #### Scenario: ADR directory absent
 - **WHEN** a user runs `adr list` and `docs/adr/` is missing
-- **THEN** the CLI prints a warning about the missing ADR directory
+- **THEN** the CLI prints a warning about the missing ADR directory to standard error
 - **AND** exits with a success status code
 
 ### Requirement: ADR listing order and output format

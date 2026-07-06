@@ -29,6 +29,8 @@ Do not renumber existing ADRs.
 
 ## Spec-driven development
 
+Product and business context lives in `openspec/config.yaml` and `openspec/specs/`.
+
 Use OpenSpec in `openspec/` for spec-driven development of planned product changes.
 
 Use ADRs for durable project decisions.

@@ -138,9 +138,9 @@ The `adr check --format` flag SHALL accept only `json` as a value.
 - **AND** exits with status code `2`
 
 ### Requirement: Missing ADR directory handling
-If `docs/adr/` does not exist, the command MUST report the missing directory and exit with a non-zero status code.
+If `docs/adr/` does not exist, the command MUST report the missing directory as a state-check result on standard output and exit with a non-zero status code.
 
 #### Scenario: ADR directory absent
 - **WHEN** a user runs `adr check` and `docs/adr/` is missing
-- **THEN** the CLI reports that the ADR directory is missing
+- **THEN** the CLI reports that the ADR directory is missing on standard output
 - **AND** exits with a non-zero status code

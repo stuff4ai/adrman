@@ -8,6 +8,8 @@ context: |
   Domain: Architectural (Any) Decision Records
   Workflow: GitHub Flow, Conventional Commits, ADRs in docs/adr/
   Goal: Git-first, agent-friendly CLI for humans, CI, and AI agents.
+  Output: stdout is the command result channel; stderr is the user-diagnostic channel.
+  Automation: command output must remain script-friendly and agent-friendly.
 
 rules:
   proposal:
@@ -18,6 +20,8 @@ rules:
     - Prefer plain files and Git-friendly workflows.
     - Keep runtime behavior explicit and predictable.
     - Keep dependencies minimal.
+    - Keep stdout for command results and stderr for user-facing diagnostics.
+    - Keep machine-readable stdout free of human diagnostics.
   tasks:
     - Keep tasks small and reviewable.
     - Include documentation updates when behavior or workflow changes.
