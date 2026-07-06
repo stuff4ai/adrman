@@ -86,9 +86,9 @@ Comprehensive help and version behavior are tracked separately and MUST remain o
 ### Requirement: CLI output stream policy
 The CLI MUST use standard output for command results and standard error for user-facing diagnostics.
 
-Command results include requested data, generated file paths, human-readable reports, state-check reports, and machine-readable output such as JSON.
+Command results include requested data, generated file paths, human-readable reports that are explicitly the primary command output, and machine-readable output such as JSON.
 
-Diagnostics include usage errors, warnings, concise next-step guidance, operational errors that prevent producing the requested result, and future progress or status messages for slower operations.
+Diagnostics include usage errors, warnings, operational errors that prevent producing the requested result, and future progress or status messages for slower operations. Per-command specs MAY place other check outcomes on standard error when the outcome is a diagnostic rather than the requested report.
 
 Normal standard error MUST NOT be used as a default log stream and MUST NOT include log-level prefixes, timestamps, module paths, Rust debug structs, backtraces, or internal implementation context by default.
 
@@ -102,7 +102,7 @@ Future output modes such as `--quiet`, `--verbose`, `--debug`, `--plain`, or `--
 - **AND** exits with status code `2`
 
 #### Scenario: Command report is result output
-- **WHEN** a command reports requested state, such as validation results
+- **WHEN** a command's primary output is a state report, such as `adr check` validation results
 - **THEN** the CLI prints the report to standard output
 - **AND** uses the exit code to signal pass or failure
 
@@ -112,5 +112,5 @@ Future output modes such as `--quiet`, `--verbose`, `--debug`, `--plain`, or `--
 
 #### Scenario: Operational error is diagnostic output
 - **WHEN** a command cannot produce the requested result because of a missing prerequisite, such as a missing ADR directory before index generation
-- **THEN** the CLI prints a concise user-facing error with next-step guidance to standard error
+- **THEN** the CLI prints a concise user-facing error to standard error
 - **AND** exits with a non-zero status code
