@@ -82,3 +82,35 @@ Comprehensive help and version behavior are tracked separately and MUST remain o
 #### Scenario: Built-in help flag is not enabled
 - **WHEN** a user runs `adr --help`
 - **THEN** the CLI does not print comprehensive command help output
+
+### Requirement: CLI output stream policy
+The CLI MUST use standard output for command results and standard error for user-facing diagnostics.
+
+Command results include requested data, generated file paths, human-readable reports, state-check reports, and machine-readable output such as JSON.
+
+Diagnostics include usage errors, warnings, concise next-step guidance, operational errors that prevent producing the requested result, and future progress or status messages for slower operations.
+
+Normal standard error MUST NOT be used as a default log stream and MUST NOT include log-level prefixes, timestamps, module paths, Rust debug structs, backtraces, or internal implementation context by default.
+
+Machine-readable standard output MUST NOT be mixed with human diagnostics.
+
+Future output modes such as `--quiet`, `--verbose`, `--debug`, `--plain`, or `--porcelain` are tracked separately and MUST remain out of scope until their dedicated changes land.
+
+#### Scenario: Usage error is diagnostic output
+- **WHEN** a user invokes `adr` with unsupported syntax
+- **THEN** the CLI prints the usage or error message to standard error
+- **AND** exits with status code `2`
+
+#### Scenario: Command report is result output
+- **WHEN** a command reports requested state, such as validation results
+- **THEN** the CLI prints the report to standard output
+- **AND** uses the exit code to signal pass or failure
+
+#### Scenario: Generated file path is result output
+- **WHEN** a command creates or updates a file and prints the resulting path
+- **THEN** the CLI prints the path to standard output
+
+#### Scenario: Operational error is diagnostic output
+- **WHEN** a command cannot produce the requested result because of a missing prerequisite, such as a missing ADR directory before index generation
+- **THEN** the CLI prints a concise user-facing error with next-step guidance to standard error
+- **AND** exits with a non-zero status code

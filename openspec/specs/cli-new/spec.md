@@ -9,11 +9,11 @@ The CLI SHALL provide an `adr new` command that creates a new ADR file from a re
 #### Scenario: User creates an ADR with a title
 - **WHEN** a user runs `adr new "Use SQLite for local cache"`
 - **THEN** the CLI creates a new ADR file in `docs/adr/`
-- **AND** prints the created file path on success
+- **AND** prints the created file path to standard output on success
 
 #### Scenario: User omits the title argument
 - **WHEN** a user runs `adr new` without a title argument
-- **THEN** the CLI reports that the title is required
+- **THEN** the CLI reports that the title is required on standard error
 - **AND** exits with status code `2`
 
 ### Requirement: ADR new title argument shape
@@ -143,10 +143,10 @@ The command MUST NOT overwrite an existing file.
 - **AND** does not modify the existing file
 
 ### Requirement: ADR creation success output
-On successful creation, the command MUST print the created file path.
+On successful creation, the command MUST print the created file path to standard output.
 
 #### Scenario: ADR is created successfully
 - **WHEN** a user runs `adr new "Use SQLite for local cache"` and file creation succeeds
-- **THEN** the CLI prints the path to the created ADR file
+- **THEN** the CLI prints the path to the created ADR file to standard output
 - **AND** exits with a success status code
 

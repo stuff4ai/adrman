@@ -9,6 +9,7 @@ The CLI SHALL provide `adr index` to generate or update the ADR index at `docs/a
 #### Scenario: User generates the ADR index
 - **WHEN** a user runs `adr index`
 - **THEN** the CLI writes `docs/adr/README.md` with the generated index content
+- **AND** prints the written index path to standard output
 - **AND** exits with status code `0`
 
 ### Requirement: ADR index discovery and metadata
@@ -49,27 +50,30 @@ The CLI SHALL support `adr index --check` to verify that `docs/adr/README.md` is
 
 #### Scenario: Check succeeds when index is up to date
 - **WHEN** a user runs `adr index --check` and `docs/adr/README.md` matches the generated index
-- **THEN** the CLI exits with status code `0`
+- **THEN** the CLI prints an up-to-date confirmation to standard output
+- **AND** exits with status code `0`
 
 #### Scenario: Check fails when index is missing
 - **WHEN** a user runs `adr index --check` and `docs/adr/README.md` does not exist
-- **THEN** the CLI exits with a non-zero status code
+- **THEN** the CLI prints a concise error with next-step guidance to standard error
+- **AND** exits with a non-zero status code
 
 #### Scenario: Check fails when index is stale
 - **WHEN** a user runs `adr index --check` and `docs/adr/README.md` differs from the generated index
-- **THEN** the CLI exits with a non-zero status code
+- **THEN** the CLI prints a concise error with next-step guidance to standard error
+- **AND** exits with a non-zero status code
 
 ### Requirement: Missing ADR directory handling
-If `docs/adr/` does not exist, `adr index` MUST report the missing directory and exit with a non-zero status code.
+If `docs/adr/` does not exist, `adr index` MUST report the missing directory on standard error and exit with a non-zero status code.
 
-If `docs/adr/` does not exist, `adr index --check` MUST report the missing directory and exit with a non-zero status code.
+If `docs/adr/` does not exist, `adr index --check` MUST report the missing directory on standard error and exit with a non-zero status code.
 
 #### Scenario: Generate fails when ADR directory is absent
 - **WHEN** a user runs `adr index` and `docs/adr/` is missing
-- **THEN** the CLI reports that the ADR directory is missing
+- **THEN** the CLI reports that the ADR directory is missing on standard error
 - **AND** exits with a non-zero status code
 
 #### Scenario: Check fails when ADR directory is absent
 - **WHEN** a user runs `adr index --check` and `docs/adr/` is missing
-- **THEN** the CLI reports that the ADR directory is missing
+- **THEN** the CLI reports that the ADR directory is missing on standard error
 - **AND** exits with a non-zero status code

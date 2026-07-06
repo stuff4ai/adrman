@@ -10,7 +10,7 @@ The CLI SHALL provide `adr init` to bootstrap an ADR workspace in the current re
 - **WHEN** a user runs `adr init` and `docs/adr/.adr-template.md` does not exist
 - **THEN** the CLI creates `docs/adr/` if needed
 - **AND** creates `docs/adr/.adr-template.md` with the default template content
-- **AND** prints a clear success message
+- **AND** prints a clear success message to standard output
 - **AND** exits with status code `0`
 
 ### Requirement: Default ADR template content
@@ -52,5 +52,5 @@ If `docs/adr/.adr-template.md` already exists, `adr init` MUST NOT overwrite it.
 #### Scenario: Init does not overwrite an existing template
 - **WHEN** a user runs `adr init` and `docs/adr/.adr-template.md` already exists
 - **THEN** the CLI leaves the existing file unchanged
-- **AND** prints a clear message that the template already exists
+- **AND** prints a clear message to standard output that the template already exists
 - **AND** exits with status code `0`
