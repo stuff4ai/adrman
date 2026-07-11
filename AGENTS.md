@@ -67,6 +67,8 @@ Use [Cargo](https://doc.rust-lang.org/cargo/) commands for Rust development.
 - Check formatting: `cargo fmt --check`
 - Run lints: `cargo clippy --workspace --all-targets`
 - Run tests: `cargo test --workspace`
+- Run tests (CI parity): `cargo llvm-cov nextest --workspace --all-features --locked --profile ci`
+- Generate local coverage report: `cargo llvm-cov report --html --open`
 - Run CLI: `cargo run -p adrman-cli --bin adr -- list`
 - Run focused CLI integration tests: `cargo test -p adrman-cli --test list_command`
 - Update/review CLI snapshots: `INSTA_UPDATE=always cargo test -p adrman-cli --test list_command`
@@ -75,4 +77,4 @@ Use [Cargo](https://doc.rust-lang.org/cargo/) commands for Rust development.
 
 This is a self-contained Rust Cargo workspace (`adrman-cli` binary + `adrman-core` library). There are no servers, databases, network calls, or other background services to start — verification is entirely via the Cargo commands listed under "Rust commands" above.
 
-The pinned toolchain lives in `rust-toolchain.toml` (stable, with `clippy`/`rustfmt`/`rust-src`); `rustup` auto-installs it on the first `cargo` invocation, so the initial command in a fresh VM may pause briefly while the toolchain syncs.
+The pinned toolchain lives in `rust-toolchain.toml` (stable, with `clippy`/`llvm-tools-preview`/`rustfmt`/`rust-src`); `rustup` auto-installs it on the first `cargo` invocation, so the initial command in a fresh VM may pause briefly while the toolchain syncs.

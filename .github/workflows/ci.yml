@@ -26,6 +26,71 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
           rustup show
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-      - run: cargo test --workspace --all-features --locked
+      - name: Install CI tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest,cargo-llvm-cov
+      - name: Check formatting
+        id: fmt
+        continue-on-error: true
+        run: cargo fmt --all -- --check
+      - name: Run clippy
+        id: clippy
+        continue-on-error: true
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: Run tests with coverage
+        id: tests
+        continue-on-error: true
+        run: |
+          mkdir -p ci-report
+          set +e
+          set -o pipefail
+          cargo llvm-cov nextest \
+            --workspace --all-features --locked \
+            --profile ci \
+            --no-fail-fast \
+            --no-report \
+            2>&1 | tee ci-report/nextest.log
+          test_exit=$?
+          set -e
+
+          cargo llvm-cov report --lcov --output-path ci-report/lcov.info
+          cargo llvm-cov report --output-path ci-report/coverage-summary.txt
+          cargo llvm-cov report --html --output-dir ci-report/coverage-html
+
+          if [ -f target/nextest/ci/junit.xml ]; then
+            cp target/nextest/ci/junit.xml ci-report/junit.xml
+          fi
+
+          exit "$test_exit"
+      - name: Generate CI report
+        if: always()
+        env:
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+        run: python3 .github/scripts/generate-ci-report.py
+      - name: Upload CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-report
+          path: ci-report/
+          if-no-files-found: ignore
+      - name: Verify CI results
+        if: always()
+        run: |
+          exit_code=0
+          if [ "${{ steps.fmt.outcome }}" != "success" ]; then
+            echo "Formatting check failed."
+            exit_code=1
+          fi
+          if [ "${{ steps.clippy.outcome }}" != "success" ]; then
+            echo "Clippy failed."
+            exit_code=1
+          fi
+          if [ "${{ steps.tests.outcome }}" != "success" ]; then
+            echo "Tests or coverage collection failed."
+            exit_code=1
+          fi
+          exit "$exit_code"
