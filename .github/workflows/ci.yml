@@ -54,11 +54,9 @@ jobs:
           test_exit=$?
           set -e
 
-          cargo llvm-cov report \
-            --workspace --all-features --locked \
-            --lcov --output-path ci-report/lcov.info \
-            --text --output-path ci-report/coverage-summary.txt \
-            --html --output-dir ci-report/coverage-html
+          cargo llvm-cov report --lcov --output-path ci-report/lcov.info
+          cargo llvm-cov report --output-path ci-report/coverage-summary.txt
+          cargo llvm-cov report --html --output-dir ci-report/coverage-html
 
           if [ -f target/nextest/ci/junit.xml ]; then
             cp target/nextest/ci/junit.xml ci-report/junit.xml
