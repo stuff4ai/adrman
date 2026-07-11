@@ -28,19 +28,28 @@ def parse_nextest_summary(log_path: Path) -> dict[str, str] | None:
     if not log_path.is_file():
         return None
 
+    # nextest omits the "failed" / "exec failed" / "timed out" segments
+    # entirely when their count is zero, e.g.:
+    #   "5 tests run: 5 passed, 0 skipped"
+    #   "8/10 tests run: 5 passed (1 slow), 2 failed, 1 exec failed, 1 timed out, 2 skipped"
     pattern = re.compile(
-        r"Summary\s+\[\s*([^\]]+)\]\s+(\d+)\s+tests run:\s+"
-        r"(\d+)\s+passed,\s+(\d+)\s+failed,\s+(\d+)\s+skipped"
+        r"Summary\s+\[\s*([^\]]+)\]\s+(?:\d+/)?(\d+)\s+tests run:\s+"
+        r"(\d+)\s+passed(?:\s*\([^)]*\))?,\s*"
+        r"(?:(\d+)\s+failed,\s*)?"
+        r"(?:(\d+)\s+exec failed,\s*)?"
+        r"(?:(\d+)\s+timed out,\s*)?"
+        r"(\d+)\s+skipped"
     )
     for line in reversed(log_path.read_text(encoding="utf-8", errors="replace").splitlines()):
         match = pattern.search(line)
         if match:
-            duration, total, passed, failed, skipped = match.groups()
+            duration, total, passed, failed, exec_failed, timed_out, skipped = match.groups()
+            failed_count = int(failed or 0) + int(exec_failed or 0) + int(timed_out or 0)
             return {
                 "duration": duration.strip(),
                 "total": total,
                 "passed": passed,
-                "failed": failed,
+                "failed": str(failed_count),
                 "skipped": skipped,
             }
     return None
